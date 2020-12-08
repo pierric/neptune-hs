@@ -1,0 +1,9 @@
+resolver: lts-14.27
+build:
+  haddock-arguments:
+    haddock-args:
+    - "--odir=./docs"
+packages:
+- '.'
+extra-deps:
+- req-3.8.0
