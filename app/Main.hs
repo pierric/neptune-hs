@@ -12,7 +12,7 @@
 {-# LANGUAGE ViewPatterns              #-}
 module Main where
 
-import           Control.Concurrent         (forkIO)
+import           Control.Concurrent         (ThreadId, forkIO, killThread)
 import           Control.Lens
 import           Control.Monad.Except
 import qualified Data.Aeson                 as Aeson
@@ -84,7 +84,7 @@ handleMimeError (mimeResult -> Left e)  = let err_msg = mimeError e
                                            in error (mimeError e ++ " " ++ BSL.unpack response)
 handleMimeError (mimeResult -> Right r) = return r
 
-oauth2_setup :: Text -> Text -> IO (MVar OAuth2Session)
+oauth2_setup :: Text -> Text -> IO (ThreadId, MVar OAuth2Session)
 oauth2_setup access_token refresh_token = do
     let decoded = JWT.decode $ access_token
         claims  = JWT.claims (decoded ^?! _Just)
@@ -98,8 +98,8 @@ oauth2_setup access_token refresh_token = do
         session = OAuth2Session client_name access_token refresh_token expires_in refresh_url
 
     oauth_session_var <- newMVar session
-    _ <- forkIO (oauth_refresher oauth_session_var)
-    return oauth_session_var
+    refresh_thread <- forkIO (oauth_refresher oauth_session_var)
+    return (refresh_thread, oauth_session_var)
 
 oauth_refresher :: MVar OAuth2Session -> IO ()
 oauth_refresher session_var = update >> oauth_refresher session_var
@@ -148,12 +148,13 @@ type Dispatcher = forall req contentType res accept .
                   -> IO res
 
 data NeptuneSession = NeptuneSession
-    { _neptune_http_manager :: NH.Manager
-    , _neptune_client_token :: ClientToken
-    , _neptune_config       :: NeptuneBackendConfig
-    , _neptune_oauth2       :: MVar OAuth2Session
-    , _neptune_project      :: ProjectWithRoleDTO
-    , _neptune_dispatch     :: Dispatcher
+    { _neptune_http_manager   :: NH.Manager
+    , _neptune_client_token   :: ClientToken
+    , _neptune_config         :: NeptuneBackendConfig
+    , _neptune_oauth2         :: MVar OAuth2Session
+    , _neptune_oauth2_refresh :: ThreadId
+    , _neptune_project        :: ProjectWithRoleDTO
+    , _neptune_dispatch       :: Dispatcher
     }
 
 initNept :: HasCallStack => Text -> IO NeptuneSession
@@ -169,10 +170,9 @@ initNept project_qualified_name = do
     let dispatch = dispatchMime mgr config{NB.configValidateAuthMethods = False}
                     >=> handleMimeError
 
-    oauth_token   <- dispatch  $ NB.exchangeApiToken (Accept MimeJSON) (XNeptuneApiToken _ct_token)
-    oauth_session <- oauth2_setup
-                        (oauth_token ^. neptuneOauthTokenAccessTokenL)
-                        (oauth_token ^. neptuneOauthTokenRefreshTokenL)
+    oauth_token <- dispatch  $ NB.exchangeApiToken (Accept MimeJSON) (XNeptuneApiToken _ct_token)
+    (refresh_thread, oauth_session) <- oauth2_setup (oauth_token ^. neptuneOauthTokenAccessTokenL)
+                                                    (oauth_token ^. neptuneOauthTokenRefreshTokenL)
 
     -- TODO there is a chance that the access token gets invalid right after readMVar
     let dispatch :: (HasCallStack, Produces req accept, MimeUnrender accept res, MimeType contentType)
@@ -188,6 +188,7 @@ initNept project_qualified_name = do
         , _neptune_client_token = ct
         , _neptune_config = config
         , _neptune_oauth2 = oauth_session
+        , _neptune_oauth2_refresh = refresh_thread
         , _neptune_project = proj
         , _neptune_dispatch = dispatch
         }
@@ -199,6 +200,7 @@ data Experiment = Experiment
     { _exp_experiment_id :: ExperimentId
     , _exp_outbound_q    :: TChan DataPointAny
     , _exp_user_channels :: ChannelHashMap
+    , _exp_transmitter   :: ThreadId
     }
 
 
@@ -253,7 +255,6 @@ createExperiment session@NeptuneSession{..} name description params props tags =
     -- TODO support abort callback. W/o a callback, the app will
     --      continue running when you click abort in the web console
     params <- mapM _mkParameter params
-    print ("@@@@@@@@@", name)
     exp    <- _neptune_dispatch $ NB.createExperiment
                 (ContentType MimeJSON)
                 (Accept MimeJSON)
@@ -265,12 +266,11 @@ createExperiment session@NeptuneSession{..} name description params props tags =
                     "command" -- legacy
                     (fromMaybe "Untitled" name)
                     tags){ experimentCreationParamsDescription = description }
-    print ("@######")
     let exp_id = ExperimentId (exp ^. experimentIdL)
     chan <- newTChanIO
     user_channels <- newTVarIO M.empty
-    _ <- forkIO $ transmitter session exp_id chan user_channels
-    return $ Experiment exp_id chan user_channels
+    transmitter_thread <- forkIO $ transmitter session exp_id chan user_channels
+    return $ Experiment exp_id chan user_channels transmitter_thread
 
     where
         _mkParameter (ExperimentParamS name value) = do
@@ -302,8 +302,6 @@ transmitter session@NeptuneSession{..} exp_id chan user_channels = sequence_ (re
                     merge         = M.toList . foldl' (M.unionWith (++)) M.empty . map (uncurry M.singleton)
                     dat_with_name :: [(Text, [DataPointAny])]
                     dat_with_name = merge $ dat ^.. traverse . dup . alongside dpt_name_A singleton
-
-                print dat_with_name
 
                 chn_with_dat <- forM dat_with_name $ \(chn_name, dat) -> do
                     -- If channel doesn't exist, then we create one with
@@ -340,13 +338,11 @@ createChannel :: forall t. (NeptDataType t, HasCallStack)
 createChannel NeptuneSession{..} exp_id user_channels chn_name = do
     -- call create channel api
     let chn_type = neptChannelType  (Proxy :: Proxy t)
-    print ("@@@@", exp_id, chn_name)
     chn <- _neptune_dispatch $ NB.createChannel
         (ContentType MimeJSON)
         (Accept MimeJSON)
         (mkChannelParams chn_name chn_type)
         exp_id
-    print "##@@@"
     let chn_new = DataChannel (chn ^. channelDTOIdL)
     -- add to `user_channels`
     atomically $ do
@@ -368,13 +364,11 @@ getOrCreateChannel _ user_channels chn_name creator = do
 
 sendChannel :: HasCallStack => NeptuneSession -> ExperimentId -> [DataChannelWithData] -> IO ()
 sendChannel NeptuneSession{..} exp_id chn'value = do
-    print ("@@@@@", exp_id, length chn'value)
     errors <- _neptune_dispatch $ NB.postChannelValues
                 (ContentType MimeJSON)
                 (Accept MimeJSON)
                 (ChannelsValues $ map toChannelsValues chn'value)
                 exp_id
-    print "####@"
     -- TODO proper logging
     forM_ errors $ \err -> do
         let chn   = err ^. batchChannelValueErrorDTOChannelIdL
@@ -407,14 +401,35 @@ gatherDataPoints _ dpa = partitionEithers $ map castData dpa
                                       Nothing -> Left "?? is not compatible for the channel"
                                       Just o -> Right o
 
-main = do
-    session@NeptuneSession{..} <- initNept "jiasen/sandbox"
-    exp <- createExperiment session Nothing Nothing [] [] []
-    forM_ [1..10::Int] $ \i -> do
-        nlog exp "counter" (fromIntegral (i * i) :: Double)
-        threadDelay 1000
+teardownNeptWith :: NeptuneSession -> Experiment -> ExperimentState -> Text -> IO ()
+teardownNeptWith NeptuneSession{..} experiment state msg = do
+    killThread $ experiment ^. exp_transmitter
+    killThread $ _neptune_oauth2_refresh
 
-    -- resp <- _neptune_dispatch $
-    --             NB.listProjects (Accept MimeJSON)
-    --             NB.-&- OrganizationIdentifier  "jiasen"
-    -- print resp
+    _neptune_dispatch $ NB.markExperimentCompleted
+        (ContentType MimeJSON)
+        (Accept MimeNoContent)
+        (mkCompletedExperimentParams state msg)
+        (experiment ^. exp_experiment_id) :: IO NoContent
+
+    return ()
+
+withNept :: Text -> (NeptuneSession -> Experiment -> IO a) -> IO a
+withNept project_qualified_name act = do
+    ses <- initNept "jiasen/sandbox"
+    exp <- createExperiment ses Nothing Nothing [] [] []
+
+    result <- try (act ses exp)
+    case result of
+      Left (e :: SomeException) -> do
+          teardownNeptWith ses exp ExperimentState'Failed (T.pack $ displayException e)
+          throwM e
+      Right a -> do
+          teardownNeptWith ses exp ExperimentState'Succeeded ""
+          return a
+
+main = do
+    withNept "jiasen/sandbox" $ \_ experiment -> do
+        forM_ [1..10::Int] $ \i -> do
+            nlog experiment "counter" (fromIntegral (i * i) :: Double)
+            threadDelay 1000000

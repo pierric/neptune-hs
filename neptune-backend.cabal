@@ -118,6 +118,7 @@ executable app
                      , rio
                      , mtl
                      , base64-bytestring
+                     , bytestring
                      , envy
                      , lens
                      , lens-aeson
