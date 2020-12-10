@@ -1,34 +1,3 @@
-## OpenAPI Auto-Generated [http-client](https://www.stackage.org/lts-10.0/package/http-client-0.5.7.1) Bindings to `Neptune Backend API`
-
-The library in `lib` provides auto-generated-from-OpenAPI [http-client](https://www.stackage.org/lts-10.0/package/http-client-0.5.7.1) bindings to the Neptune Backend API API.
-
-OpenApi Version: 3.0.1
-
-## Installation
-
-Installation follows the standard approach to installing Stack-based projects.
-
-1. Install the [Haskell `stack` tool](http://docs.haskellstack.org/en/stable/README).
-2. To build the package, and generate the documentation (recommended):
-```
-stack haddock
-```
-which will generate docs for this lib in the `docs` folder.
-
-To generate the docs in the normal location (to enable hyperlinks to external libs), remove 
-```
-build:
-  haddock-arguments:
-    haddock-args:
-    - "--odir=./docs"
-```
-from the stack.yaml file and run `stack haddock` again.
-
-3. To run unit tests:
-```
-stack test
-```
-
 ## OpenAPI-Generator
 
 The code generator that produced this library, and which explains how
@@ -50,60 +19,19 @@ This is beta software; other cases may not be supported.
 
 ### Codegen "additional properties" parameters
 
-These options allow some customization of the code generation process.
+## Neptune high-level API
 
-**haskell-http-client additional properties:**
-
-| OPTION                          | DESCRIPTION                                                                                                                   | DEFAULT  | ACTUAL                                |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
-| allowFromJsonNulls              | allow JSON Null during model decoding from JSON                                                                               | true     | true              |
-| allowNonUniqueOperationIds      | allow *different* API modules to contain the same operationId. Each API must be imported qualified                            | false    | false    |
-| allowToJsonNulls                | allow emitting JSON Null during model encoding to JSON                                                                        | false    | false                |
-| baseModule                      | Set the base module namespace                                                                                                 |          | NeptuneBackend                      |
-| cabalPackage                    | Set the cabal package name, which consists of one or more alphanumeric words separated by hyphens                             |          | neptune-backend                    |
-| cabalVersion                    | Set the cabal version number, consisting of a sequence of one or more integers separated by dots                              | 0.1.0.0  | 0.1.0.0                    |
-| customTestInstanceModule        | test module used to provide typeclass instances for types not known by the generator                                          |          |         |
-| configType                      | Set the name of the type used for configuration                                                                               |          | NeptuneBackendConfig                      |
-| dateFormat                      | format string used to parse/render a date                                                                                     | %Y-%m-%d | %Y-%m-%d                      |
-| dateTimeFormat                  | format string used to parse/render a datetime. (Defaults to [formatISO8601Millis][1] when not provided)                       |          |                   |
-| dateTimeParseFormat             | overrides the format string used to parse a datetime                                                                          |          |              |
-| generateEnums                   | Generate specific datatypes for OpenAPI enums                                                                                 | true     | true                   |
-| generateFormUrlEncodedInstances | Generate FromForm/ToForm instances for models used by x-www-form-urlencoded operations (model fields must be primitive types) | true     | true |
-| generateLenses                  | Generate Lens optics for Models                                                                                               | true     | true                  |
-| generateModelConstructors       | Generate smart constructors (only supply required fields) for models                                                          | true     | true       |
-| inlineMimeTypes                 | Inline (hardcode) the content-type and accept parameters on operations, when there is only 1 option                           | true     | true                 |
-| modelDeriving                   | Additional classes to include in the deriving() clause of Models                                                              |          |                    |
-| requestType                     | Set the name of the type used to generate requests                                                                            |          | NeptuneBackendRequest                     |
-| strictFields                    | Add strictness annotations to all model fields                                                                                | true     | true                  |
-| useKatip                        | Sets the default value for the UseKatip cabal flag. If true, the katip package provides logging instead of monad-logger       | true     | true                      |
-
-[1]: https://www.stackage.org/haddock/lts-9.0/iso8601-time-0.1.4/Data-Time-ISO8601.html#v:formatISO8601Millis
-
-An example setting _dateTimeFormat_ and _strictFields_:
-
-```
-java -jar openapi-generator-cli.jar generate -i petstore.yaml -g haskell-http-client -o output/haskell-http-client --additional-properties=dateTimeFormat="%Y-%m-%dT%H:%M:%S%Q%z" --additional-properties=strictFields=false 
+```haskell
+main = do
+    -- Experiment 'sandbox' must be created from the Neptune dashboard
+    withNept "jiasen/sandbox" $ \_ experiment -> do
+        forM_ [1..10::Int] $ \i -> do
+            -- You can log arbitrary name/value (current limited to double values)
+            nlog experiment "counter" (fromIntegral (i * i) :: Double)
+            threadDelay 1000000
 ```
 
-View the full list of Codegen "config option" parameters with the command:
-
-```
-java -jar openapi-generator-cli.jar config-help -g haskell-http-client
-```
-
-## Usage Notes
-
-### Example Petstore Haddock documentation
-
-An example of the generated haddock documentation targeting the server http://petstore.swagger.io/ (Petstore) can be found [here][2]
-
-[2]: https://hackage.haskell.org/package/swagger-petstore
-
-### Example Petstore App
-
-An example application using the auto-generated haskell-http-client bindings for the server http://petstore.swagger.io/ can be found [here][3]
-
-[3]: https://github.com/openapitools/openapi-generator/tree/master/samples/client/petstore/haskell-http-client/example-app
+## OpenAPI Auto-Generated http-client Bindings to Neptune Backend API
 
 This library is intended to be imported qualified.
 
