@@ -13,19 +13,7 @@ Module : Neptune
 -}
 
 module Neptune
-  ( module Neptune.Backend.API
-  , module Neptune.Backend.Client
-  , module Neptune.Backend.Core
-  , module Neptune.Backend.Logging
-  , module Neptune.Backend.MimeTypes
-  , module Neptune.Backend.Model
-  , module Neptune.Backend.ModelLens
+  ( module Neptune.Client
   ) where
 
-import           Neptune.Backend.API
-import           Neptune.Backend.Client
-import           Neptune.Backend.Core
-import           Neptune.Backend.Logging
-import           Neptune.Backend.MimeTypes
-import           Neptune.Backend.Model
-import           Neptune.Backend.ModelLens
+import           Neptune.Client

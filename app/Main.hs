@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeOperators             #-}
 module Main where
 
-import           Neptune.Client
+import           Neptune
 import           RIO
 
 main = do
