@@ -9,7 +9,7 @@
 -}
 
 {-|
-Module : NeptuneBackend.MimeTypes
+Module : Neptune.Backend.MimeTypes
 -}
 
 {-# LANGUAGE ConstraintKinds           #-}
@@ -21,7 +21,7 @@ Module : NeptuneBackend.MimeTypes
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-unused-imports #-}
 
-module NeptuneBackend.MimeTypes where
+module Neptune.Backend.MimeTypes where
 
 import qualified Control.Arrow              as P (left)
 import qualified Data.Aeson                 as A

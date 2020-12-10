@@ -1303,69 +1303,69 @@ mkError errorCode errorMessage =
 -- ** Experiment
 -- | Experiment
 data Experiment = Experiment
-    { experimentChannels           :: !(Maybe [Channel]) -- ^ "channels"
-    -- ^ "state"
-    , experimentState              :: !(Maybe ExperimentState) -- ^ "state"
+    { experimentChannels           :: !([Channel]) -- ^ /Required/ "channels"
+    -- ^ /Required/ "state"
+    , experimentState              :: !(ExperimentState) -- ^ /Required/ "state"
     -- ^ "timeOfCompletion"
     , experimentTimeOfCompletion   :: !(Maybe DateTime) -- ^ "timeOfCompletion"
     -- ^ "checkpointId"
     , experimentCheckpointId       :: !(Maybe Text) -- ^ "checkpointId"
-    -- ^ "paths"
-    , experimentPaths              :: !(Maybe ExperimentPaths) -- ^ "paths"
-    -- ^ "responding"
-    , experimentResponding         :: !(Maybe Bool) -- ^ "responding"
-    -- ^ "organizationId"
-    , experimentOrganizationId     :: !(Maybe Text) -- ^ "organizationId"
-    -- ^ "stateTransitions"
-    , experimentStateTransitions   :: !(Maybe StateTransitions) -- ^ "stateTransitions"
-    -- ^ "parameters"
-    , experimentParameters         :: !(Maybe [Parameter]) -- ^ "parameters"
-    -- ^ "channelsLastValues"
-    , experimentChannelsLastValues :: !(Maybe [ChannelWithValue]) -- ^ "channelsLastValues"
-    -- ^ "storageSize"
-    , experimentStorageSize        :: !(Maybe Integer) -- ^ "storageSize"
-    -- ^ "name"
-    , experimentName               :: !(Maybe Text) -- ^ "name"
+    -- ^ /Required/ "paths"
+    , experimentPaths              :: !(ExperimentPaths) -- ^ /Required/ "paths"
+    -- ^ /Required/ "responding"
+    , experimentResponding         :: !(Bool) -- ^ /Required/ "responding"
+    -- ^ /Required/ "organizationId"
+    , experimentOrganizationId     :: !(Text) -- ^ /Required/ "organizationId"
+    -- ^ /Required/ "stateTransitions"
+    , experimentStateTransitions   :: !(StateTransitions) -- ^ /Required/ "stateTransitions"
+    -- ^ /Required/ "parameters"
+    , experimentParameters         :: !([Parameter]) -- ^ /Required/ "parameters"
+    -- ^ /Required/ "channelsLastValues"
+    , experimentChannelsLastValues :: !([ChannelWithValue]) -- ^ /Required/ "channelsLastValues"
+    -- ^ /Required/ "storageSize"
+    , experimentStorageSize        :: !(Integer) -- ^ /Required/ "storageSize"
+    -- ^ /Required/ "name"
+    , experimentName               :: !(Text) -- ^ /Required/ "name"
     -- ^ "notebookId"
     , experimentNotebookId         :: !(Maybe Text) -- ^ "notebookId"
-    -- ^ "projectName"
-    , experimentProjectName        :: !(Maybe Text) -- ^ "projectName"
+    -- ^ /Required/ "projectName"
+    , experimentProjectName        :: !(Text) -- ^ /Required/ "projectName"
     -- ^ "hostname"
     , experimentHostname           :: !(Maybe Text) -- ^ "hostname"
-    -- ^ "trashed"
-    , experimentTrashed            :: !(Maybe Bool) -- ^ "trashed"
-    -- ^ "description"
-    , experimentDescription        :: !(Maybe Text) -- ^ "description"
-    -- ^ "tags"
-    , experimentTags               :: !(Maybe [Text]) -- ^ "tags"
-    -- ^ "channelsSize"
-    , experimentChannelsSize       :: !(Maybe Integer) -- ^ "channelsSize"
-    -- ^ "timeOfCreation"
-    , experimentTimeOfCreation     :: !(Maybe DateTime) -- ^ "timeOfCreation"
-    -- ^ "projectId"
-    , experimentProjectId          :: !(Maybe Text) -- ^ "projectId"
-    -- ^ "organizationName"
-    , experimentOrganizationName   :: !(Maybe Text) -- ^ "organizationName"
+    -- ^ /Required/ "trashed"
+    , experimentTrashed            :: !(Bool) -- ^ /Required/ "trashed"
+    -- ^ /Required/ "description"
+    , experimentDescription        :: !(Text) -- ^ /Required/ "description"
+    -- ^ /Required/ "tags"
+    , experimentTags               :: !([Text]) -- ^ /Required/ "tags"
+    -- ^ /Required/ "channelsSize"
+    , experimentChannelsSize       :: !(Integer) -- ^ /Required/ "channelsSize"
+    -- ^ /Required/ "timeOfCreation"
+    , experimentTimeOfCreation     :: !(DateTime) -- ^ /Required/ "timeOfCreation"
+    -- ^ /Required/ "projectId"
+    , experimentProjectId          :: !(Text) -- ^ /Required/ "projectId"
+    -- ^ /Required/ "organizationName"
+    , experimentOrganizationName   :: !(Text) -- ^ /Required/ "organizationName"
     -- ^ "isCodeAccessible"
     , experimentIsCodeAccessible   :: !(Maybe Bool) -- ^ "isCodeAccessible"
     -- ^ "traceback"
     , experimentTraceback          :: !(Maybe Text) -- ^ "traceback"
     -- ^ "entrypoint"
     , experimentEntrypoint         :: !(Maybe Text) -- ^ "entrypoint"
-    -- ^ "runningTime"
-    , experimentRunningTime        :: !(Maybe Integer) -- ^ "runningTime"
+    -- ^ /Required/ "runningTime"
+    , experimentRunningTime        :: !(Integer) -- ^ /Required/ "runningTime"
     -- ^ /Required/ "id"
     , experimentId                 :: !(Text) -- ^ /Required/ "id"
-    -- ^ "inputs"
-    , experimentInputs             :: !(Maybe [InputMetadata]) -- ^ "inputs"
-    -- ^ "properties"
-    , experimentProperties         :: !(Maybe [KeyValueProperty]) -- ^ "properties"
+    -- ^ /Required/ "inputs"
+    , experimentInputs             :: !([InputMetadata]) -- ^ /Required/ "inputs"
+    -- ^ /Required/ "properties"
+    , experimentProperties         :: !([KeyValueProperty]) -- ^ /Required/ "properties"
     -- ^ /Required/ "shortId"
     , experimentShortId            :: !(Text) -- ^ /Required/ "shortId"
-    -- ^ "componentsVersions"
-    , experimentComponentsVersions :: !(Maybe [ComponentVersion]) -- ^ "componentsVersions"
-    -- ^ "owner"
-    , experimentOwner              :: !(Maybe Text) -- ^ "owner"
+    -- ^ /Required/ "componentsVersions"
+    , experimentComponentsVersions :: !([ComponentVersion]) -- ^ /Required/ "componentsVersions"
+    -- ^ /Required/ "owner"
+    , experimentOwner              :: !(Text) -- ^ /Required/ "owner"
     }
     deriving (P.Show, P.Eq, P.Typeable)
 
@@ -1373,38 +1373,38 @@ data Experiment = Experiment
 instance A.FromJSON Experiment where
   parseJSON = A.withObject "Experiment" $ \o ->
     Experiment
-      <$> (o .:? "channels")
-      <*> (o .:? "state")
+      <$> (o .:  "channels")
+      <*> (o .:  "state")
       <*> (o .:? "timeOfCompletion")
       <*> (o .:? "checkpointId")
-      <*> (o .:? "paths")
-      <*> (o .:? "responding")
-      <*> (o .:? "organizationId")
-      <*> (o .:? "stateTransitions")
-      <*> (o .:? "parameters")
-      <*> (o .:? "channelsLastValues")
-      <*> (o .:? "storageSize")
-      <*> (o .:? "name")
+      <*> (o .:  "paths")
+      <*> (o .:  "responding")
+      <*> (o .:  "organizationId")
+      <*> (o .:  "stateTransitions")
+      <*> (o .:  "parameters")
+      <*> (o .:  "channelsLastValues")
+      <*> (o .:  "storageSize")
+      <*> (o .:  "name")
       <*> (o .:? "notebookId")
-      <*> (o .:? "projectName")
+      <*> (o .:  "projectName")
       <*> (o .:? "hostname")
-      <*> (o .:? "trashed")
-      <*> (o .:? "description")
-      <*> (o .:? "tags")
-      <*> (o .:? "channelsSize")
-      <*> (o .:? "timeOfCreation")
-      <*> (o .:? "projectId")
-      <*> (o .:? "organizationName")
+      <*> (o .:  "trashed")
+      <*> (o .:  "description")
+      <*> (o .:  "tags")
+      <*> (o .:  "channelsSize")
+      <*> (o .:  "timeOfCreation")
+      <*> (o .:  "projectId")
+      <*> (o .:  "organizationName")
       <*> (o .:? "isCodeAccessible")
       <*> (o .:? "traceback")
       <*> (o .:? "entrypoint")
-      <*> (o .:? "runningTime")
+      <*> (o .:  "runningTime")
       <*> (o .:  "id")
-      <*> (o .:? "inputs")
-      <*> (o .:? "properties")
+      <*> (o .:  "inputs")
+      <*> (o .:  "properties")
       <*> (o .:  "shortId")
-      <*> (o .:? "componentsVersions")
-      <*> (o .:? "owner")
+      <*> (o .:  "componentsVersions")
+      <*> (o .:  "owner")
 
 -- | ToJSON Experiment
 instance A.ToJSON Experiment where
@@ -1447,43 +1447,66 @@ instance A.ToJSON Experiment where
 
 -- | Construct a value of type 'Experiment' (by applying it's required fields, if any)
 mkExperiment
-  :: Text -- ^ 'experimentId'
+  :: [Channel] -- ^ 'experimentChannels'
+  -> ExperimentState -- ^ 'experimentState'
+  -> ExperimentPaths -- ^ 'experimentPaths'
+  -> Bool -- ^ 'experimentResponding'
+  -> Text -- ^ 'experimentOrganizationId'
+  -> StateTransitions -- ^ 'experimentStateTransitions'
+  -> [Parameter] -- ^ 'experimentParameters'
+  -> [ChannelWithValue] -- ^ 'experimentChannelsLastValues'
+  -> Integer -- ^ 'experimentStorageSize'
+  -> Text -- ^ 'experimentName'
+  -> Text -- ^ 'experimentProjectName'
+  -> Bool -- ^ 'experimentTrashed'
+  -> Text -- ^ 'experimentDescription'
+  -> [Text] -- ^ 'experimentTags'
+  -> Integer -- ^ 'experimentChannelsSize'
+  -> DateTime -- ^ 'experimentTimeOfCreation'
+  -> Text -- ^ 'experimentProjectId'
+  -> Text -- ^ 'experimentOrganizationName'
+  -> Integer -- ^ 'experimentRunningTime'
+  -> Text -- ^ 'experimentId'
+  -> [InputMetadata] -- ^ 'experimentInputs'
+  -> [KeyValueProperty] -- ^ 'experimentProperties'
   -> Text -- ^ 'experimentShortId'
+  -> [ComponentVersion] -- ^ 'experimentComponentsVersions'
+  -> Text -- ^ 'experimentOwner'
   -> Experiment
-mkExperiment experimentId experimentShortId =
+mkExperiment experimentChannels experimentState experimentPaths experimentResponding experimentOrganizationId experimentStateTransitions experimentParameters experimentChannelsLastValues experimentStorageSize experimentName experimentProjectName experimentTrashed experimentDescription experimentTags experimentChannelsSize experimentTimeOfCreation experimentProjectId experimentOrganizationName experimentRunningTime experimentId experimentInputs experimentProperties experimentShortId experimentComponentsVersions experimentOwner =
   Experiment
-  { experimentChannels = Nothing
-  , experimentState = Nothing
+  { experimentChannels
+  , experimentState
   , experimentTimeOfCompletion = Nothing
   , experimentCheckpointId = Nothing
-  , experimentPaths = Nothing
-  , experimentResponding = Nothing
-  , experimentOrganizationId = Nothing
-  , experimentStateTransitions = Nothing
-  , experimentParameters = Nothing
-  , experimentChannelsLastValues = Nothing
-  , experimentStorageSize = Nothing
-  , experimentName = Nothing
+  , experimentPaths
+  , experimentResponding
+  , experimentOrganizationId
+  , experimentStateTransitions
+  , experimentParameters
+  , experimentChannelsLastValues
+  , experimentStorageSize
+  , experimentName
   , experimentNotebookId = Nothing
-  , experimentProjectName = Nothing
+  , experimentProjectName
   , experimentHostname = Nothing
-  , experimentTrashed = Nothing
-  , experimentDescription = Nothing
-  , experimentTags = Nothing
-  , experimentChannelsSize = Nothing
-  , experimentTimeOfCreation = Nothing
-  , experimentProjectId = Nothing
-  , experimentOrganizationName = Nothing
+  , experimentTrashed
+  , experimentDescription
+  , experimentTags
+  , experimentChannelsSize
+  , experimentTimeOfCreation
+  , experimentProjectId
+  , experimentOrganizationName
   , experimentIsCodeAccessible = Nothing
   , experimentTraceback = Nothing
   , experimentEntrypoint = Nothing
-  , experimentRunningTime = Nothing
+  , experimentRunningTime
   , experimentId
-  , experimentInputs = Nothing
-  , experimentProperties = Nothing
+  , experimentInputs
+  , experimentProperties
   , experimentShortId
-  , experimentComponentsVersions = Nothing
-  , experimentOwner = Nothing
+  , experimentComponentsVersions
+  , experimentOwner
   }
 
 -- ** ExperimentCreationParams

@@ -9,25 +9,25 @@
 -}
 
 {-|
-Module : NeptuneBackend.LoggingMonadLogger
+Module : Neptune.Backend.LoggingMonadLogger
 monad-logger Logging functions
 -}
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module NeptuneBackend.LoggingMonadLogger where
+module Neptune.Backend.LoggingMonadLogger where
 
 import qualified Control.Exception.Safe as E
 import qualified Control.Monad.IO.Class as P
-import qualified Data.Text as T
-import qualified Data.Time as TI
+import qualified Data.Text              as T
+import qualified Data.Time              as TI
 
-import Data.Monoid ((<>))
-import Data.Text (Text)
+import           Data.Monoid            ((<>))
+import           Data.Text              (Text)
 
-import qualified Control.Monad.Logger as LG
+import qualified Control.Monad.Logger   as LG
 
 -- * Type Aliases (for compatibility)
 
@@ -90,7 +90,7 @@ nullLogger _ _ _ _ = return ()
 _log :: (P.MonadIO m, LG.MonadLogger m) => Text -> LG.LogLevel -> Text -> m ()
 _log src level msg = do
   now <- P.liftIO (formatTimeLog <$> TI.getCurrentTime)
-  LG.logOtherNS ("NeptuneBackend." <> src) level ("[" <> now <> "] " <> msg)
+  LG.logOtherNS ("Neptune.Backend." <> src) level ("[" <> now <> "] " <> msg)
  where
   formatTimeLog =
     T.pack . TI.formatTime TI.defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Z"

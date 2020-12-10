@@ -551,12 +551,12 @@ errorTypeL f Error{..} = (\errorType -> Error { errorType, ..} ) <$> f errorType
 -- * Experiment
 
 -- | 'experimentChannels' Lens
-experimentChannelsL :: Lens_' Experiment (Maybe [Channel])
+experimentChannelsL :: Lens_' Experiment ([Channel])
 experimentChannelsL f Experiment{..} = (\experimentChannels -> Experiment { experimentChannels, ..} ) <$> f experimentChannels
 {-# INLINE experimentChannelsL #-}
 
 -- | 'experimentState' Lens
-experimentStateL :: Lens_' Experiment (Maybe ExperimentState)
+experimentStateL :: Lens_' Experiment (ExperimentState)
 experimentStateL f Experiment{..} = (\experimentState -> Experiment { experimentState, ..} ) <$> f experimentState
 {-# INLINE experimentStateL #-}
 
@@ -571,42 +571,42 @@ experimentCheckpointIdL f Experiment{..} = (\experimentCheckpointId -> Experimen
 {-# INLINE experimentCheckpointIdL #-}
 
 -- | 'experimentPaths' Lens
-experimentPathsL :: Lens_' Experiment (Maybe ExperimentPaths)
+experimentPathsL :: Lens_' Experiment (ExperimentPaths)
 experimentPathsL f Experiment{..} = (\experimentPaths -> Experiment { experimentPaths, ..} ) <$> f experimentPaths
 {-# INLINE experimentPathsL #-}
 
 -- | 'experimentResponding' Lens
-experimentRespondingL :: Lens_' Experiment (Maybe Bool)
+experimentRespondingL :: Lens_' Experiment (Bool)
 experimentRespondingL f Experiment{..} = (\experimentResponding -> Experiment { experimentResponding, ..} ) <$> f experimentResponding
 {-# INLINE experimentRespondingL #-}
 
 -- | 'experimentOrganizationId' Lens
-experimentOrganizationIdL :: Lens_' Experiment (Maybe Text)
+experimentOrganizationIdL :: Lens_' Experiment (Text)
 experimentOrganizationIdL f Experiment{..} = (\experimentOrganizationId -> Experiment { experimentOrganizationId, ..} ) <$> f experimentOrganizationId
 {-# INLINE experimentOrganizationIdL #-}
 
 -- | 'experimentStateTransitions' Lens
-experimentStateTransitionsL :: Lens_' Experiment (Maybe StateTransitions)
+experimentStateTransitionsL :: Lens_' Experiment (StateTransitions)
 experimentStateTransitionsL f Experiment{..} = (\experimentStateTransitions -> Experiment { experimentStateTransitions, ..} ) <$> f experimentStateTransitions
 {-# INLINE experimentStateTransitionsL #-}
 
 -- | 'experimentParameters' Lens
-experimentParametersL :: Lens_' Experiment (Maybe [Parameter])
+experimentParametersL :: Lens_' Experiment ([Parameter])
 experimentParametersL f Experiment{..} = (\experimentParameters -> Experiment { experimentParameters, ..} ) <$> f experimentParameters
 {-# INLINE experimentParametersL #-}
 
 -- | 'experimentChannelsLastValues' Lens
-experimentChannelsLastValuesL :: Lens_' Experiment (Maybe [ChannelWithValue])
+experimentChannelsLastValuesL :: Lens_' Experiment ([ChannelWithValue])
 experimentChannelsLastValuesL f Experiment{..} = (\experimentChannelsLastValues -> Experiment { experimentChannelsLastValues, ..} ) <$> f experimentChannelsLastValues
 {-# INLINE experimentChannelsLastValuesL #-}
 
 -- | 'experimentStorageSize' Lens
-experimentStorageSizeL :: Lens_' Experiment (Maybe Integer)
+experimentStorageSizeL :: Lens_' Experiment (Integer)
 experimentStorageSizeL f Experiment{..} = (\experimentStorageSize -> Experiment { experimentStorageSize, ..} ) <$> f experimentStorageSize
 {-# INLINE experimentStorageSizeL #-}
 
 -- | 'experimentName' Lens
-experimentNameL :: Lens_' Experiment (Maybe Text)
+experimentNameL :: Lens_' Experiment (Text)
 experimentNameL f Experiment{..} = (\experimentName -> Experiment { experimentName, ..} ) <$> f experimentName
 {-# INLINE experimentNameL #-}
 
@@ -616,7 +616,7 @@ experimentNotebookIdL f Experiment{..} = (\experimentNotebookId -> Experiment { 
 {-# INLINE experimentNotebookIdL #-}
 
 -- | 'experimentProjectName' Lens
-experimentProjectNameL :: Lens_' Experiment (Maybe Text)
+experimentProjectNameL :: Lens_' Experiment (Text)
 experimentProjectNameL f Experiment{..} = (\experimentProjectName -> Experiment { experimentProjectName, ..} ) <$> f experimentProjectName
 {-# INLINE experimentProjectNameL #-}
 
@@ -626,37 +626,37 @@ experimentHostnameL f Experiment{..} = (\experimentHostname -> Experiment { expe
 {-# INLINE experimentHostnameL #-}
 
 -- | 'experimentTrashed' Lens
-experimentTrashedL :: Lens_' Experiment (Maybe Bool)
+experimentTrashedL :: Lens_' Experiment (Bool)
 experimentTrashedL f Experiment{..} = (\experimentTrashed -> Experiment { experimentTrashed, ..} ) <$> f experimentTrashed
 {-# INLINE experimentTrashedL #-}
 
 -- | 'experimentDescription' Lens
-experimentDescriptionL :: Lens_' Experiment (Maybe Text)
+experimentDescriptionL :: Lens_' Experiment (Text)
 experimentDescriptionL f Experiment{..} = (\experimentDescription -> Experiment { experimentDescription, ..} ) <$> f experimentDescription
 {-# INLINE experimentDescriptionL #-}
 
 -- | 'experimentTags' Lens
-experimentTagsL :: Lens_' Experiment (Maybe [Text])
+experimentTagsL :: Lens_' Experiment ([Text])
 experimentTagsL f Experiment{..} = (\experimentTags -> Experiment { experimentTags, ..} ) <$> f experimentTags
 {-# INLINE experimentTagsL #-}
 
 -- | 'experimentChannelsSize' Lens
-experimentChannelsSizeL :: Lens_' Experiment (Maybe Integer)
+experimentChannelsSizeL :: Lens_' Experiment (Integer)
 experimentChannelsSizeL f Experiment{..} = (\experimentChannelsSize -> Experiment { experimentChannelsSize, ..} ) <$> f experimentChannelsSize
 {-# INLINE experimentChannelsSizeL #-}
 
 -- | 'experimentTimeOfCreation' Lens
-experimentTimeOfCreationL :: Lens_' Experiment (Maybe DateTime)
+experimentTimeOfCreationL :: Lens_' Experiment (DateTime)
 experimentTimeOfCreationL f Experiment{..} = (\experimentTimeOfCreation -> Experiment { experimentTimeOfCreation, ..} ) <$> f experimentTimeOfCreation
 {-# INLINE experimentTimeOfCreationL #-}
 
 -- | 'experimentProjectId' Lens
-experimentProjectIdL :: Lens_' Experiment (Maybe Text)
+experimentProjectIdL :: Lens_' Experiment (Text)
 experimentProjectIdL f Experiment{..} = (\experimentProjectId -> Experiment { experimentProjectId, ..} ) <$> f experimentProjectId
 {-# INLINE experimentProjectIdL #-}
 
 -- | 'experimentOrganizationName' Lens
-experimentOrganizationNameL :: Lens_' Experiment (Maybe Text)
+experimentOrganizationNameL :: Lens_' Experiment (Text)
 experimentOrganizationNameL f Experiment{..} = (\experimentOrganizationName -> Experiment { experimentOrganizationName, ..} ) <$> f experimentOrganizationName
 {-# INLINE experimentOrganizationNameL #-}
 
@@ -676,7 +676,7 @@ experimentEntrypointL f Experiment{..} = (\experimentEntrypoint -> Experiment { 
 {-# INLINE experimentEntrypointL #-}
 
 -- | 'experimentRunningTime' Lens
-experimentRunningTimeL :: Lens_' Experiment (Maybe Integer)
+experimentRunningTimeL :: Lens_' Experiment (Integer)
 experimentRunningTimeL f Experiment{..} = (\experimentRunningTime -> Experiment { experimentRunningTime, ..} ) <$> f experimentRunningTime
 {-# INLINE experimentRunningTimeL #-}
 
@@ -686,12 +686,12 @@ experimentIdL f Experiment{..} = (\experimentId -> Experiment { experimentId, ..
 {-# INLINE experimentIdL #-}
 
 -- | 'experimentInputs' Lens
-experimentInputsL :: Lens_' Experiment (Maybe [InputMetadata])
+experimentInputsL :: Lens_' Experiment ([InputMetadata])
 experimentInputsL f Experiment{..} = (\experimentInputs -> Experiment { experimentInputs, ..} ) <$> f experimentInputs
 {-# INLINE experimentInputsL #-}
 
 -- | 'experimentProperties' Lens
-experimentPropertiesL :: Lens_' Experiment (Maybe [KeyValueProperty])
+experimentPropertiesL :: Lens_' Experiment ([KeyValueProperty])
 experimentPropertiesL f Experiment{..} = (\experimentProperties -> Experiment { experimentProperties, ..} ) <$> f experimentProperties
 {-# INLINE experimentPropertiesL #-}
 
@@ -701,12 +701,12 @@ experimentShortIdL f Experiment{..} = (\experimentShortId -> Experiment { experi
 {-# INLINE experimentShortIdL #-}
 
 -- | 'experimentComponentsVersions' Lens
-experimentComponentsVersionsL :: Lens_' Experiment (Maybe [ComponentVersion])
+experimentComponentsVersionsL :: Lens_' Experiment ([ComponentVersion])
 experimentComponentsVersionsL f Experiment{..} = (\experimentComponentsVersions -> Experiment { experimentComponentsVersions, ..} ) <$> f experimentComponentsVersions
 {-# INLINE experimentComponentsVersionsL #-}
 
 -- | 'experimentOwner' Lens
-experimentOwnerL :: Lens_' Experiment (Maybe Text)
+experimentOwnerL :: Lens_' Experiment (Text)
 experimentOwnerL f Experiment{..} = (\experimentOwner -> Experiment { experimentOwner, ..} ) <$> f experimentOwner
 {-# INLINE experimentOwnerL #-}
 

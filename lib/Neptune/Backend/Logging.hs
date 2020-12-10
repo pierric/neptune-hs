@@ -9,25 +9,25 @@
 -}
 
 {-|
-Module : NeptuneBackend.Logging
+Module : Neptune.Backend.Logging
 Logging functions
 -}
 {-# LANGUAGE CPP #-}
 
 #ifdef USE_KATIP
 
-module NeptuneBackend.Logging
-  ( module NeptuneBackend.LoggingKatip
+module Neptune.Backend.Logging
+  ( module Neptune.Backend.LoggingKatip
   ) where
 
-import NeptuneBackend.LoggingKatip
+import Neptune.Backend.LoggingKatip
 
 #else
 
-module NeptuneBackend.Logging
-  ( module NeptuneBackend.LoggingMonadLogger
+module Neptune.Backend.Logging
+  ( module Neptune.Backend.LoggingMonadLogger
   ) where
 
-import NeptuneBackend.LoggingMonadLogger
+import Neptune.Backend.LoggingMonadLogger
 
 #endif

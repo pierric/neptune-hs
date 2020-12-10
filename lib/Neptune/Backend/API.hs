@@ -12,8 +12,8 @@
 Module : NeptuneBackend.API
 -}
 
-module NeptuneBackend.API
-  ( module NeptuneBackend.API.ApiDefault
+module Neptune.Backend.API
+  ( module Neptune.Backend.API.ApiDefault
   ) where
 
-import NeptuneBackend.API.ApiDefault
+import           Neptune.Backend.API.ApiDefault

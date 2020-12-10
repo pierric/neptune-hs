@@ -9,27 +9,27 @@
 -}
 
 {-|
-Module : NeptuneBackend.LoggingKatip
+Module : Neptune.Backend.LoggingKatip
 Katip Logging functions
 -}
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module NeptuneBackend.LoggingKatip where
+module Neptune.Backend.LoggingKatip where
 
-import qualified Control.Exception.Safe as E
-import qualified Control.Monad.IO.Class as P
+import qualified Control.Exception.Safe     as E
+import qualified Control.Monad.IO.Class     as P
 import qualified Control.Monad.Trans.Reader as P
-import qualified Data.Text as T
-import qualified Lens.Micro as L
-import qualified System.IO as IO
+import qualified Data.Text                  as T
+import qualified Lens.Micro                 as L
+import qualified System.IO                  as IO
 
-import Data.Text (Text)
-import GHC.Exts (IsString(..))
+import           Data.Text                  (Text)
+import           GHC.Exts                   (IsString (..))
 
-import qualified Katip as LG
+import qualified Katip                      as LG
 
 -- * Type Aliases (for compatibility)
 
@@ -50,7 +50,7 @@ type LogLevel = LG.Severity
 
 -- | the default log environment
 initLogContext :: IO LogContext
-initLogContext = LG.initLogEnv "NeptuneBackend" "dev"
+initLogContext = LG.initLogEnv "Neptune.Backend" "dev"
 
 -- | Runs a Katip logging block with the Log environment
 runDefaultLogExecWithContext :: LogExecWithContext

@@ -1,25 +1,20 @@
+cabal-version:  2.2
 name:           neptune-backend
 version:        0.1.0.0
 synopsis:       Auto-generated neptune-backend API Client
 description:    .
                 Client library for calling the Neptune Backend API API based on http-client.
                 .
-                host: localhost
-                .
-                base path: http://localhost
-                .
                 Neptune Backend API API version: 2.8
                 .
                 OpenAPI version: 3.0.1
                 .
 category:       Web
-homepage:       https://openapi-generator.tech
-author:         Author Name Here
-maintainer:     author.name@email.com
-copyright:      YEAR - AUTHOR
-license:        UnspecifiedLicense
+author:         Jiasen Wu
+maintainer:     jiasenwu@hotmail.com
+copyright:      2020 - Jiasen Wu
+license:        BSD-3-Clause
 build-type:     Simple
-cabal-version:  >= 1.10
 
 extra-source-files:
     README.md
@@ -59,27 +54,41 @@ library
     , transformers >=0.4.0.0
     , unordered-containers
     , vector >=0.10.9 && <0.13
+    , lens
+    , lens-aeson
+    , rio
+    , modern-uri
+    , jwt
+    , req
+    , envy
+    , uuid
   other-modules:
       Paths_neptune_backend
   exposed-modules:
-      NeptuneBackend
-      NeptuneBackend.API
-      NeptuneBackend.API.ApiDefault
-      NeptuneBackend.Client
-      NeptuneBackend.Core
-      NeptuneBackend.Logging
-      NeptuneBackend.MimeTypes
-      NeptuneBackend.Model
-      NeptuneBackend.ModelLens
+      Neptune
+      Neptune.Client
+      Neptune.Channel
+      Neptune.OAuth
+      Neptune.Session
+      Neptune.Utils
+      Neptune.Backend.API
+      Neptune.Backend.API.ApiDefault
+      Neptune.Backend.Client
+      Neptune.Backend.Core
+      Neptune.Backend.Logging
+      Neptune.Backend.MimeTypes
+      Neptune.Backend.Model
+      Neptune.Backend.ModelLens
   default-language: Haskell2010
+  default-extensions:  OverloadedStrings
 
   if flag(UseKatip)
       build-depends: katip >=0.8 && < 1.0
-      other-modules: NeptuneBackend.LoggingKatip
+      other-modules: Neptune.Backend.LoggingKatip
       cpp-options: -DUSE_KATIP
   else
       build-depends: monad-logger >=0.3 && <0.4
-      other-modules: NeptuneBackend.LoggingMonadLogger
+      other-modules: Neptune.Backend.LoggingMonadLogger
       cpp-options: -DUSE_MONAD_LOGGER
 
 test-suite tests
@@ -115,25 +124,8 @@ executable app
   main-is:             Main.hs
   ghc-options:         -Wall
   build-depends:       base
-                     , rio
                      , mtl
-                     , base64-bytestring
-                     , bytestring
-                     , envy
-                     , lens
-                     , lens-aeson
+                     , rio
                      , neptune-backend
-                     , hoauth2
-                     , aeson
-                     , text
-                     , jwt
-                     , http-client
-                     , http-client-tls
-                     , modern-uri
-                     , req
-                     , time
-                     , uuid
-  default-extensions:  DeriveGeneric
-                     , OverloadedStrings
-                     , RecordWildCards
+  default-extensions:  OverloadedStrings
   default-language:    Haskell2010

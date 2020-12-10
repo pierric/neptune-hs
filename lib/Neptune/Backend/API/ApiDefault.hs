@@ -9,7 +9,7 @@
 -}
 
 {-|
-Module : NeptuneBackend.API.ApiDefault
+Module : Neptune.Backend.API.ApiDefault
 -}
 
 {-# LANGUAGE FlexibleContexts      #-}
@@ -19,11 +19,11 @@ Module : NeptuneBackend.API.ApiDefault
 {-# LANGUAGE OverloadedStrings     #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing -fno-warn-unused-binds -fno-warn-unused-imports #-}
 
-module NeptuneBackend.API.ApiDefault where
+module Neptune.Backend.API.ApiDefault where
 
-import           NeptuneBackend.Core
-import           NeptuneBackend.MimeTypes
-import           NeptuneBackend.Model                  as M
+import           Neptune.Backend.Core
+import           Neptune.Backend.MimeTypes
+import           Neptune.Backend.Model                 as M
 
 import qualified Data.Aeson                            as A
 import qualified Data.ByteString                       as B
