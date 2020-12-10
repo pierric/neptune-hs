@@ -1,24 +1,3 @@
-## OpenAPI-Generator
-
-The code generator that produced this library, and which explains how
-to obtain and use the openapi-generator cli tool lives at
-
-https://openapi-generator.tech
-
-The _generator-name_ argument (`--generator-name`) passed to the cli tool used should be
-
-```
-haskell-http-client
-```
-
-### Unsupported OpenAPI Features
-
-* Model Inheritance
-
-This is beta software; other cases may not be supported.
-
-### Codegen "additional properties" parameters
-
 ## Neptune high-level API
 
 ```haskell
