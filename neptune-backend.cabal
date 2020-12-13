@@ -1,6 +1,6 @@
 cabal-version:  2.2
 name:           neptune-backend
-version:        0.1.0
+version:        0.1.1
 synopsis:       Auto-generated neptune-backend API Client
 description:    .
                 Client library for calling the Neptune Backend API API based on http-client.
@@ -15,10 +15,6 @@ maintainer:     jiasenwu@hotmail.com
 copyright:      2020 - Jiasen Wu
 license:        BSD-3-Clause
 build-type:     Simple
-
-source-repository head
-  type:     git
-  location: https://github.com/pierric/neptune-hs
 
 extra-source-files:
     README.md
@@ -67,6 +63,8 @@ library
     , envy
     , uuid
   other-modules:
+      Paths_neptune_backend
+  autogen-modules:
       Paths_neptune_backend
   exposed-modules:
       Neptune
@@ -133,3 +131,7 @@ executable example-app
                      , neptune-backend
   default-extensions:  OverloadedStrings
   default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/pierric/neptune-hs
