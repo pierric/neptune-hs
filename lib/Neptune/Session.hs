@@ -1,14 +1,18 @@
-{-# LANGUAGE DeriveGeneric   #-}
-{-# LANGUAGE Rank2Types      #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveGeneric             #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE Rank2Types                #-}
+{-# LANGUAGE StandaloneDeriving        #-}
+{-# LANGUAGE TemplateHaskell           #-}
 module Neptune.Session where
 
 import           Control.Concurrent        (ThreadId)
+import           Control.Concurrent.Event  as E
 import           Control.Lens
 import           Control.Monad.Except
 import qualified Data.Aeson                as Aeson
 import           Data.Aeson.Lens
 import qualified Data.ByteString.Base64    as Base64
+import           Data.Time.Clock           (UTCTime)
 import qualified Network.HTTP.Client       as NH
 import           RIO                       hiding (Lens', (^.))
 import qualified RIO.Text                  as T
@@ -16,7 +20,7 @@ import           System.Envy               (FromEnv (..), Parser, env)
 
 import           Neptune.Backend.Core
 import           Neptune.Backend.MimeTypes
-import           Neptune.Backend.Model
+import           Neptune.Backend.Model     hiding (Experiment, Parameter)
 import           Neptune.OAuth
 
 data ClientToken = ClientToken
@@ -54,4 +58,48 @@ data NeptuneSession = NeptuneSession
     , _neptune_project        :: ProjectWithRoleDTO
     , _neptune_dispatch       :: Dispatcher
     }
+
+data Experiment = Experiment
+    { _exp_experiment_id    :: ExperimentId
+    , _exp_outbound_q       :: TChan DataPointAny
+    , _exp_user_channels    :: ChannelHashMap
+    , _exp_stop_flag        :: E.Event
+    , _exp_transmitter_flag :: E.Event
+    , _exp_transmitter      :: ThreadId
+    }
+
+class (Typeable a, Show a) => NeptDataType a where
+    neptChannelType :: Proxy a -> ChannelTypeEnum
+    toNeptPoint     :: DataPoint a -> Point
+
+newtype DataChannel a = DataChannel Text
+    deriving Show
+
+data DataChannelAny = forall a . NeptDataType a => DataChannelAny (DataChannel a)
+deriving instance Show DataChannelAny
+
+type ChannelHashMap = TVar (HashMap Text DataChannelAny)
+
+data DataPoint a = DataPoint
+    { _dpt_name      :: Text
+    , _dpt_timestamp :: UTCTime
+    , _dpt_value     :: a
+    }
+    deriving Show
+
+data DataPointAny = forall a . NeptDataType a => DataPointAny (DataPoint a)
+deriving instance Show DataPointAny
+
+makeLenses ''Experiment
+makeLenses ''DataPoint
+
+dpt_name_A :: Lens' DataPointAny Text
+dpt_name_A f (DataPointAny (DataPoint n t v)) =
+    let set = (\n -> DataPointAny (DataPoint n t v))
+     in set <$> f n
+
+dpt_timestamp_A :: Lens' DataPointAny UTCTime
+dpt_timestamp_A f (DataPointAny (DataPoint n t v)) =
+    let set = (\t -> DataPointAny (DataPoint n t v))
+     in set <$> f t
 

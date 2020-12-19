@@ -4,6 +4,7 @@
 module Neptune.Client where
 
 import           Control.Concurrent        (ThreadId, forkIO, killThread)
+import           Control.Concurrent.Event  as E
 import           Control.Lens
 import qualified Data.Text.Lazy            as TL
 import qualified Data.Text.Lazy.Encoding   as TL
@@ -31,16 +32,6 @@ import           Neptune.Utils
 
 data Parameter = ExperimentParamS Text Text
     | ExperimentParamD Text Double
-
-data Experiment = Experiment
-    { _exp_experiment_id :: ExperimentId
-    , _exp_outbound_q    :: TChan DataPointAny
-    , _exp_user_channels :: ChannelHashMap
-    , _exp_transmitter   :: ThreadId
-    }
-
-makeLenses ''Experiment
-
 
 createExperiment :: HasCallStack
                  => NeptuneSession
@@ -70,8 +61,11 @@ createExperiment session@NeptuneSession{..} name description params props tags =
     let exp_id = ExperimentId (exp ^. experimentIdL)
     chan <- newTChanIO
     user_channels <- newTVarIO M.empty
-    transmitter_thread <- forkIO $ transmitter session exp_id chan user_channels
-    return $ Experiment exp_id chan user_channels transmitter_thread
+    stop_flag <- E.new
+    transmitter_flag <- E.new
+    let exp = Experiment exp_id chan user_channels stop_flag transmitter_flag undefined
+    transmitter_thread <- forkIO $ transmitter session exp
+    return exp {_exp_transmitter = transmitter_thread}
 
     where
         _mkParameter (ExperimentParamS name value) = do
@@ -140,7 +134,12 @@ initNept project_qualified_name = do
 
 teardownNept :: NeptuneSession -> Experiment -> ExperimentState -> Text -> IO ()
 teardownNept NeptuneSession{..} experiment state msg = do
-    killThread $ experiment ^. exp_transmitter
+    E.set (experiment ^. exp_stop_flag)
+    -- wait at most 5 seconds
+    done <- E.waitTimeout (experiment ^. exp_transmitter_flag) 5000000
+    -- kill if timeout
+    when (not done) $
+        killThread $ experiment ^. exp_transmitter
     killThread $ _neptune_oauth2_refresh
 
     _neptune_dispatch $ NBAPI.markExperimentCompleted

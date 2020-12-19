@@ -1,10 +1,10 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RecordWildCards           #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE TemplateHaskell           #-}
 module Neptune.Channel where
 
+import           Control.Concurrent.Event  as E
 import           Control.Lens
 import           Data.Time.Clock           (UTCTime)
 import           Data.Time.Clock.POSIX     (utcTimeToPOSIXSeconds)
@@ -14,81 +14,55 @@ import qualified RIO.HashMap               as M
 
 import qualified Neptune.Backend.API       as NBAPI
 import           Neptune.Backend.MimeTypes
-import           Neptune.Backend.Model
+import           Neptune.Backend.Model     hiding (Experiment)
 import           Neptune.Backend.ModelLens
 import           Neptune.Session
 
-class (Typeable a, Show a) => NeptDataType a where
-    neptChannelType :: Proxy a -> ChannelTypeEnum
-    toNeptPoint     :: DataPoint a -> Point
-
-data DataPoint a = DataPoint
-    { _dpt_name      :: Text
-    , _dpt_timestamp :: UTCTime
-    , _dpt_value     :: a
-    }
-    deriving Show
-
-data DataPointAny = forall a . NeptDataType a => DataPointAny (DataPoint a)
-deriving instance Show DataPointAny
-
-newtype DataChannel a = DataChannel Text
-    deriving Show
-
-data DataChannelAny = forall a . NeptDataType a => DataChannelAny (DataChannel a)
-deriving instance Show DataChannelAny
-
 data DataChannelWithData = forall a. NeptDataType a => DataChannelWithData (DataChannel a, [DataPoint a])
-
-type ChannelHashMap = TVar (HashMap Text DataChannelAny)
-
-makeLenses ''DataPoint
-
-dpt_name_A :: Lens' DataPointAny Text
-dpt_name_A f (DataPointAny (DataPoint n t v)) =
-    let set = (\n -> DataPointAny (DataPoint n t v))
-     in set <$> f n
-
-dpt_timestamp_A :: Lens' DataPointAny UTCTime
-dpt_timestamp_A f (DataPointAny (DataPoint n t v)) =
-    let set = (\t -> DataPointAny (DataPoint n t v))
-     in set <$> f t
 
 transmitter :: HasCallStack
             => NeptuneSession
-            -> ExperimentId
-            -> TChan DataPointAny
-            -> ChannelHashMap
+            -> Experiment
             -> IO ()
-transmitter session@NeptuneSession{..} exp_id chan user_channels = sequence_ (repeat go)
+transmitter session@NeptuneSession{..} Experiment{..} = go
     where
-        go = do dat <- atomically $ readTChanAtMost 10 chan
+        go = do
+            stop_flag <- E.isSet _exp_stop_flag
+            dat <- atomically $
+                    if stop_flag
+                      then readTChanFull _exp_outbound_q
+                      else readTChanAtMost 100 _exp_outbound_q
+            send dat
+            if not stop_flag
+               then go
+               else E.set _exp_transmitter_flag
 
-                let dup           = Control.Lens.to (\a -> (a, a))
-                    singleton     = Control.Lens.to (\a -> [a])
-                    merge         = M.toList . foldl' (M.unionWith (++)) M.empty . map (uncurry M.singleton)
-                    dat_with_name :: [(Text, [DataPointAny])]
-                    dat_with_name = merge $ dat ^.. traverse . dup . alongside dpt_name_A singleton
+        send dat = do
+            let dup           = Control.Lens.to (\a -> (a, a))
+                singleton     = Control.Lens.to (\a -> [a])
+                merge         = M.toList . foldl' (M.unionWith (++)) M.empty . map (uncurry M.singleton)
+                dat_with_name :: [(Text, [DataPointAny])]
+                dat_with_name = merge $ dat ^.. traverse . dup . alongside dpt_name_A singleton
 
-                chn_with_dat <- forM dat_with_name $ \(chn_name, dat) -> do
-                    -- If channel doesn't exist, then we create one with
-                    -- channel type from the first element.
-                    chn <- case head dat of
-                             DataPointAny d0 ->
-                                 getOrCreateChannel
-                                    (proxy d0)
-                                    user_channels
-                                    chn_name
-                                    (createChannel session exp_id user_channels chn_name)
+            chn_with_dat <- forM dat_with_name $ \(chn_name, dat) -> do
+                -- If channel doesn't exist, then we create one with
+                -- channel type from the first element.
+                chn <- case head dat of
+                         DataPointAny d0 ->
+                             getOrCreateChannel
+                                (proxy d0)
+                                _exp_user_channels
+                                chn_name
+                                (createChannel session _exp_experiment_id _exp_user_channels chn_name)
 
-                    case chn of
-                      DataChannelAny chn -> do
-                          let (errs, grouped) = gatherDataPoints (proxy chn) dat
-                          -- TODO log properly
-                          mapM_ print errs
-                          return $ DataChannelWithData (chn, grouped)
+                case chn of
+                  DataChannelAny chn -> do
+                      let (errs, grouped) = gatherDataPoints (proxy chn) dat
+                      -- TODO log properly
+                      mapM_ print errs
+                      return $ DataChannelWithData (chn, grouped)
 
-                sendChannel session exp_id chn_with_dat
+            sendChannel session _exp_experiment_id chn_with_dat
 
         proxy :: f a -> Proxy a
         proxy _ = Proxy
@@ -149,7 +123,6 @@ sendChannel NeptuneSession{..} exp_id chn'value = do
         toChannelsValues (DataChannelWithData (DataChannel chn, dat)) =
             mkInputChannelValues chn (map toNeptPoint dat)
 
-
 readTChanAtMost :: Int -> TChan a -> STM [a]
 readTChanAtMost n chan = do
     -- blocking-read for the 1st elem
@@ -157,6 +130,15 @@ readTChanAtMost n chan = do
     v0 <- readTChan chan
     vs <- sequence $ replicate (n - 1) (tryReadTChan chan)
     return $ v0 : catMaybes vs
+
+readTChanFull :: TChan a -> STM [a]
+readTChanFull chan = do
+    vs <- tryReadTChan chan
+    case vs of
+      Nothing -> return []
+      Just v -> do
+          vs <- readTChanFull chan
+          return $ v : vs
 
 gatherDataPoints :: forall a. NeptDataType a
                  => Proxy a

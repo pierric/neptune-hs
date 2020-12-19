@@ -62,6 +62,7 @@ library
     , req
     , envy
     , uuid
+    , concurrent-extra
   other-modules:
       Paths_neptune_backend
   autogen-modules:
