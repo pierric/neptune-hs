@@ -1,6 +1,6 @@
 cabal-version:  2.2
 name:           neptune-backend
-version:        0.1.1
+version:        0.1.2
 synopsis:       Neptune Client
 description:    .
                 Client library for calling the Neptune API based on http-client.
