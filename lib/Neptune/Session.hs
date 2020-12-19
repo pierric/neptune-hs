@@ -12,9 +12,9 @@ License     : BSD-3-Clause
 module Neptune.Session where
 
 import           Control.Concurrent        (ThreadId)
-import           Control.Concurrent.Event  as E
+import           Control.Concurrent.Event  as E (Event)
 import           Control.Lens
-import           Control.Monad.Except
+import           Control.Monad.Except      (MonadError (throwError))
 import qualified Data.Aeson                as Aeson
 import           Data.Aeson.Lens
 import qualified Data.ByteString.Base64    as Base64

@@ -7,13 +7,11 @@ License     : BSD-3-Clause
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RecordWildCards           #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
-{-# LANGUAGE TemplateHaskell           #-}
 module Neptune.Channel where
 
-import           Control.Concurrent.Event  as E
+import           Control.Concurrent.Event  as E (isSet, set)
 import           Control.Lens
-import           Data.Time.Clock           (UTCTime)
-import           Data.Typeable
+import           Data.Typeable             (Proxy (..), cast)
 import           RIO                       hiding (Lens', (^.))
 import qualified RIO.HashMap               as M
 

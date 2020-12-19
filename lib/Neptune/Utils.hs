@@ -18,5 +18,5 @@ handleMimeError result =
     case mimeResult result of
       Left e -> let err_msg = mimeError e
                     response = NH.responseBody $ mimeErrorResponse e
-                in error (mimeError e ++ " " ++ BSL.unpack response)
+                in error (err_msg ++ " " ++ BSL.unpack response)
       Right r -> return r
