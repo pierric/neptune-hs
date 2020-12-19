@@ -129,8 +129,8 @@ initNept project_qualified_name = do
                     >=> handleMimeError
 
     oauth_token <- dispatch  $ NBAPI.exchangeApiToken (Accept MimeJSON) (XNeptuneApiToken _ct_token)
-    (refresh_thread, oauth_session) <- oauth2_setup (oauth_token ^. neptuneOauthTokenAccessTokenL)
-                                                    (oauth_token ^. neptuneOauthTokenRefreshTokenL)
+    (refresh_thread, oauth_session) <- oauth2Setup (oauth_token ^. neptuneOauthTokenAccessTokenL)
+                                                   (oauth_token ^. neptuneOauthTokenRefreshTokenL)
 
     -- TODO there is a chance that the access token gets invalid right after readMVar
     let dispatch :: (HasCallStack, Produces req accept, MimeUnrender accept res, MimeType contentType)
