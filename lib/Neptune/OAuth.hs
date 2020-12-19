@@ -34,8 +34,8 @@ data OAuth2Session = OAuth2Session
 makeLenses ''OAuth2Session
 
 -- | Setup a background thread to refresh OAuth2 token.
-oauth2_setup :: Text -> Text -> IO (ThreadId, MVar OAuth2Session)
-oauth2_setup access_token refresh_token = do
+oauth2Setup :: Text -> Text -> IO (ThreadId, MVar OAuth2Session)
+oauth2Setup access_token refresh_token = do
     let decoded = JWT.decode $ access_token
         claims  = JWT.claims (decoded ^?! _Just)
         issuer  = JWT.iss claims ^?! _Just & JWT.stringOrURIToText
@@ -48,11 +48,11 @@ oauth2_setup access_token refresh_token = do
         session = OAuth2Session client_name access_token refresh_token expires_in refresh_url
 
     oauth_session_var <- newMVar session
-    refresh_thread <- forkIO (oauth_refresher oauth_session_var)
+    refresh_thread <- forkIO (oauthRefresher oauth_session_var)
     return (refresh_thread, oauth_session_var)
 
-oauth_refresher :: MVar OAuth2Session -> IO ()
-oauth_refresher session_var = update >> oauth_refresher session_var
+oauthRefresher :: MVar OAuth2Session -> IO ()
+oauthRefresher session_var = update >> oauthRefresher session_var
     where
         update = do
             session <- readMVar session_var
