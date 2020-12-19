@@ -10,6 +10,13 @@ main = do
             threadDelay 1000000
 ```
 
+## TODOs
+* Support logging text, image value.
+* Create project
+* Register callback for the abort action from web console.
+* Support system channels
+* Get git information
+
 ## OpenAPI Auto-Generated http-client Bindings to Neptune Backend API
 
 This library is intended to be imported qualified.

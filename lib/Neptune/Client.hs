@@ -1,3 +1,9 @@
+{-|
+Module      : Neptune.Client
+Description : Neptune Client
+Copyright   : (c) Jiasen Wu, 2020
+License     : BSD-3-Clause
+-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
@@ -30,16 +36,19 @@ import           Neptune.Session
 import           Neptune.Utils
 
 
+-- | Experiment's hyper-parameter. When creating an experiment, you could
+-- specify parameters to present in the web console.
 data Parameter = ExperimentParamS Text Text
     | ExperimentParamD Text Double
 
+-- | Create an experiment
 createExperiment :: HasCallStack
-                 => NeptuneSession
-                 -> Maybe Text
-                 -> Maybe Text
-                 -> [Parameter]
-                 -> [(Text, Text)]
-                 -> [Text]
+                 => NeptuneSession -- ^ Session
+                 -> Maybe Text -- ^ Optional name (automatically assigned if Nothing)
+                 -> Maybe Text -- ^ Optional description
+                 -> [Parameter] -- ^ hyper-parameters
+                 -> [(Text, Text)] -- ^ properties
+                 -> [Text] -- ^ tags
                  -> IO Experiment
 createExperiment session@NeptuneSession{..} name description params props tags = do
     -- TODO support git_info
@@ -75,14 +84,22 @@ createExperiment session@NeptuneSession{..} name description params props tags =
             _id <- UUID.toText <$> UUID.nextRandom
             return $ mkParameter name ParameterTypeEnum'Double _id (tshow value)
 
-nlog :: (HasCallStack, NeptDataType a) => Experiment -> Text -> a -> IO ()
+-- | Log a key-value pair
+nlog :: (HasCallStack, NeptDataType a)
+     => Experiment -- ^ experiment
+     -> Text -- ^ key
+     -> a -- ^ value
+     -> IO ()
 nlog exp name value = do
     now <- getCurrentTime
     let chan = exp ^. exp_outbound_q
         dat  = DataPointAny $ DataPoint name now value
     atomically $ writeTChan chan dat
 
-withNept :: Text -> (NeptuneSession -> Experiment -> IO a) -> IO a
+-- | Run an action within a neptune session
+withNept :: Text -- ^ \<namespace\>\/\<project_name\>
+         -> (NeptuneSession -> Experiment -> IO a) -- ^ action
+         -> IO a
 withNept project_qualified_name act = do
     ses <- initNept project_qualified_name
     exp <- createExperiment ses Nothing Nothing [] [] []
@@ -96,7 +113,10 @@ withNept project_qualified_name act = do
           teardownNept ses exp ExperimentState'Succeeded ""
           return a
 
-initNept :: HasCallStack => Text -> IO NeptuneSession
+-- | Initialize a neptune session
+initNept :: HasCallStack
+         => Text -- ^ \<namespace\>\/\<project_name\>
+         -> IO NeptuneSession
 initNept project_qualified_name = do
     ct@ClientToken{..} <- decodeEnv >>= either throwString return
 
@@ -132,7 +152,12 @@ initNept project_qualified_name = do
         , _neptune_dispatch = dispatch
         }
 
-teardownNept :: NeptuneSession -> Experiment -> ExperimentState -> Text -> IO ()
+-- | Teardown a neptune session
+teardownNept :: NeptuneSession -- ^ session
+             -> Experiment -- ^ experiment
+             -> ExperimentState -- ^ completion state
+             -> Text -- ^ completion message
+             -> IO ()
 teardownNept NeptuneSession{..} experiment state msg = do
     E.set (experiment ^. exp_stop_flag)
     -- wait at most 5 seconds
@@ -142,12 +167,11 @@ teardownNept NeptuneSession{..} experiment state msg = do
         killThread $ experiment ^. exp_transmitter
     killThread $ _neptune_oauth2_refresh
 
-    _neptune_dispatch $ NBAPI.markExperimentCompleted
+    _ <- _neptune_dispatch $ NBAPI.markExperimentCompleted
         (ContentType MimeJSON)
         (Accept MimeNoContent)
         (mkCompletedExperimentParams state msg)
         (experiment ^. exp_experiment_id) :: IO NoContent
 
     return ()
-
 

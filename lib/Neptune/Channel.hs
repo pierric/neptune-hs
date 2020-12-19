@@ -1,3 +1,9 @@
+{-|
+Module      : Neptune.Channel
+Description : Neptune Client
+Copyright   : (c) Jiasen Wu, 2020
+License     : BSD-3-Clause
+-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RecordWildCards           #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
@@ -7,7 +13,6 @@ module Neptune.Channel where
 import           Control.Concurrent.Event  as E
 import           Control.Lens
 import           Data.Time.Clock           (UTCTime)
-import           Data.Time.Clock.POSIX     (utcTimeToPOSIXSeconds)
 import           Data.Typeable
 import           RIO                       hiding (Lens', (^.))
 import qualified RIO.HashMap               as M
@@ -20,6 +25,7 @@ import           Neptune.Session
 
 data DataChannelWithData = forall a. NeptDataType a => DataChannelWithData (DataChannel a, [DataPoint a])
 
+-- | Background thread for transmission
 transmitter :: HasCallStack
             => NeptuneSession
             -> Experiment
@@ -53,7 +59,7 @@ transmitter session@NeptuneSession{..} Experiment{..} = go
                                 (proxy d0)
                                 _exp_user_channels
                                 chn_name
-                                (createChannel session _exp_experiment_id _exp_user_channels chn_name)
+                                (createChannel session _exp_experiment_id chn_name)
 
                 case chn of
                   DataChannelAny chn -> do
@@ -67,16 +73,10 @@ transmitter session@NeptuneSession{..} Experiment{..} = go
         proxy :: f a -> Proxy a
         proxy _ = Proxy
 
-
-instance NeptDataType Double where
-    neptChannelType  _ = ChannelTypeEnum'Numeric
-    toNeptPoint dat    = let t = floor $ utcTimeToPOSIXSeconds (dat ^. dpt_timestamp) * 1000
-                             y = mkY{ yNumericValue = dat ^. dpt_value . re _Just }
-                          in mkPoint t y
-
+-- | Create a neptune data channel.
 createChannel :: forall t. (NeptDataType t, HasCallStack)
-              => NeptuneSession -> ExperimentId -> ChannelHashMap -> Text -> IO (DataChannel t)
-createChannel NeptuneSession{..} exp_id user_channels chn_name = do
+              => NeptuneSession -> ExperimentId -> Text -> IO (DataChannel t)
+createChannel NeptuneSession{..} exp_id chn_name = do
     -- call create channel api
     let chn_type = neptChannelType  (Proxy :: Proxy t)
     chn <- _neptune_dispatch $ NBAPI.createChannel
@@ -84,25 +84,30 @@ createChannel NeptuneSession{..} exp_id user_channels chn_name = do
         (Accept MimeJSON)
         (mkChannelParams chn_name chn_type)
         exp_id
-    let chn_new = DataChannel (chn ^. channelDTOIdL) :: DataChannel t
-    -- add to `user_channels`
-    atomically $ do
-        mapping <- readTVar user_channels
-        writeTVar user_channels (mapping & ix chn_name .~ (DataChannelAny chn_new))
-    return chn_new
+    return $ DataChannel (chn ^. channelDTOIdL) :: IO (DataChannel t)
 
+-- | Get a neptune data channel. If the data channel doesn't exist yet,
+-- a data channel will be created and added to the hashmap of current
+-- user channels.
 getOrCreateChannel :: forall t. NeptDataType t
-                   => Proxy t
-                   -> ChannelHashMap
-                   -> Text
-                   -> IO (DataChannel t)
+                   => Proxy t -- ^ dummy data type
+                   -> ChannelHashMap -- ^ current user channels
+                   -> Text -- ^ channel name
+                   -> IO (DataChannel t) -- ^ creator
                    -> IO DataChannelAny
 getOrCreateChannel _ user_channels chn_name creator = do
     uc  <- readTVarIO user_channels
     case uc ^? ix chn_name of
-      Nothing -> DataChannelAny <$> creator
+      Nothing -> do
+        -- add to `user_channels`
+        chn_new <- DataChannelAny <$> creator
+        atomically $ do
+            mapping <- readTVar user_channels
+            writeTVar user_channels (mapping & ix chn_name .~ chn_new)
+            return chn_new
       Just x  -> return x
 
+-- | Send a batch of data in their respective channel.
 sendChannel :: HasCallStack => NeptuneSession -> ExperimentId -> [DataChannelWithData] -> IO ()
 sendChannel NeptuneSession{..} exp_id chn'value = do
     errors <- _neptune_dispatch $ NBAPI.postChannelValues
@@ -123,6 +128,8 @@ sendChannel NeptuneSession{..} exp_id chn'value = do
         toChannelsValues (DataChannelWithData (DataChannel chn, dat)) =
             mkInputChannelValues chn (map toNeptPoint dat)
 
+-- | Read at most 'n' items from the queue, with blocking read at the
+-- first item.
 readTChanAtMost :: Int -> TChan a -> STM [a]
 readTChanAtMost n chan = do
     -- blocking-read for the 1st elem
@@ -131,6 +138,7 @@ readTChanAtMost n chan = do
     vs <- sequence $ replicate (n - 1) (tryReadTChan chan)
     return $ v0 : catMaybes vs
 
+-- | Read all items from the queue
 readTChanFull :: TChan a -> STM [a]
 readTChanFull chan = do
     vs <- tryReadTChan chan
@@ -147,5 +155,5 @@ gatherDataPoints :: forall a. NeptDataType a
 gatherDataPoints _ dpa = partitionEithers $ map castData dpa
     where
         castData (DataPointAny d) = case cast d of
-                                      Nothing -> Left "?? is not compatible for the channel"
+                                      Nothing -> Left $ _dpt_name d <> " is not compatible for the channel"
                                       Just o -> Right o

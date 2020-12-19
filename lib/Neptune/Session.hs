@@ -1,3 +1,9 @@
+{-|
+Module      : Neptune.Session
+Description : Neptune Client
+Copyright   : (c) Jiasen Wu, 2020
+License     : BSD-3-Clause
+-}
 {-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE Rank2Types                #-}
@@ -13,6 +19,7 @@ import qualified Data.Aeson                as Aeson
 import           Data.Aeson.Lens
 import qualified Data.ByteString.Base64    as Base64
 import           Data.Time.Clock           (UTCTime)
+import           Data.Time.Clock.POSIX     (utcTimeToPOSIXSeconds)
 import qualified Network.HTTP.Client       as NH
 import           RIO                       hiding (Lens', (^.))
 import qualified RIO.Text                  as T
@@ -23,11 +30,13 @@ import           Neptune.Backend.MimeTypes
 import           Neptune.Backend.Model     hiding (Experiment, Parameter)
 import           Neptune.OAuth
 
+
+-- | Decoded client token
 data ClientToken = ClientToken
-    { _ct_token       :: Text
-    , _ct_api_address :: Text
-    , _ct_api_url     :: Text
-    , _ct_api_key     :: Text
+    { _ct_token       :: Text -- ^ user secret
+    , _ct_api_address :: Text -- ^ neptune api address
+    , _ct_api_url     :: Text -- ^ neptune api address
+    , _ct_api_key     :: Text -- ^ neptune api key (not used)
     }
     deriving (Generic, Show)
 
@@ -49,37 +58,43 @@ type Dispatcher = forall req contentType res accept .
                   => NeptuneBackendRequest req contentType res accept
                   -> IO res
 
+-- | Neptune session. It contains all necessary information to communicate the
+-- server.
 data NeptuneSession = NeptuneSession
     { _neptune_http_manager   :: NH.Manager
     , _neptune_client_token   :: ClientToken
     , _neptune_config         :: NeptuneBackendConfig
     , _neptune_oauth2         :: MVar OAuth2Session
-    , _neptune_oauth2_refresh :: ThreadId
-    , _neptune_project        :: ProjectWithRoleDTO
-    , _neptune_dispatch       :: Dispatcher
+    , _neptune_oauth2_refresh :: ThreadId -- ^ Background thread for updating OAuth2 token
+    , _neptune_project        :: ProjectWithRoleDTO -- ^ Active project
+    , _neptune_dispatch       :: Dispatcher -- ^ Dispatching function for http requests
     }
 
 data Experiment = Experiment
-    { _exp_experiment_id    :: ExperimentId
-    , _exp_outbound_q       :: TChan DataPointAny
-    , _exp_user_channels    :: ChannelHashMap
-    , _exp_stop_flag        :: E.Event
-    , _exp_transmitter_flag :: E.Event
-    , _exp_transmitter      :: ThreadId
+    { _exp_experiment_id    :: ExperimentId -- ^ Experiment Id
+    , _exp_outbound_q       :: TChan DataPointAny -- ^ Output queue
+    , _exp_user_channels    :: ChannelHashMap -- ^ Active output channels
+    , _exp_stop_flag        :: E.Event -- ^ Event flag to indicate the end of the session
+    , _exp_transmitter_flag :: E.Event -- ^ Event flag to indicate completion of transmission
+    , _exp_transmitter      :: ThreadId -- ^ Background thread for transmission
     }
 
 class (Typeable a, Show a) => NeptDataType a where
     neptChannelType :: Proxy a -> ChannelTypeEnum
     toNeptPoint     :: DataPoint a -> Point
 
-newtype DataChannel a = DataChannel Text
+-- | Type-safe data channel
+newtype DataChannel a = DataChannel Text {- ^ Channel Id -}
     deriving Show
 
+-- | Data channel of any type
 data DataChannelAny = forall a . NeptDataType a => DataChannelAny (DataChannel a)
 deriving instance Show DataChannelAny
 
+-- | Hashmap of all channels in use
 type ChannelHashMap = TVar (HashMap Text DataChannelAny)
 
+-- | Type-safe data point
 data DataPoint a = DataPoint
     { _dpt_name      :: Text
     , _dpt_timestamp :: UTCTime
@@ -87,19 +102,29 @@ data DataPoint a = DataPoint
     }
     deriving Show
 
+-- | Data point of any type
 data DataPointAny = forall a . NeptDataType a => DataPointAny (DataPoint a)
 deriving instance Show DataPointAny
 
 makeLenses ''Experiment
 makeLenses ''DataPoint
 
+-- | Lens to get/set '_dpt_name' for 'DataPointAny'
 dpt_name_A :: Lens' DataPointAny Text
 dpt_name_A f (DataPointAny (DataPoint n t v)) =
     let set = (\n -> DataPointAny (DataPoint n t v))
      in set <$> f n
 
+-- | Lens to get/set '_dpt_timestamp' for 'DataPointAny'
 dpt_timestamp_A :: Lens' DataPointAny UTCTime
 dpt_timestamp_A f (DataPointAny (DataPoint n t v)) =
     let set = (\t -> DataPointAny (DataPoint n t v))
      in set <$> f t
+
+instance NeptDataType Double where
+    neptChannelType  _ = ChannelTypeEnum'Numeric
+    toNeptPoint dat    = let t = floor $ utcTimeToPOSIXSeconds (dat ^. dpt_timestamp) * 1000
+                             y = mkY{ yNumericValue = dat ^. dpt_value . re _Just }
+                          in mkPoint t y
+
 

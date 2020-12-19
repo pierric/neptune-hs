@@ -1,3 +1,9 @@
+{-|
+Module      : Neptune.OAuth
+Description : Neptune Client
+Copyright   : (c) Jiasen Wu, 2020
+License     : BSD-3-Clause
+-}
 {-# LANGUAGE TemplateHaskell #-}
 module Neptune.OAuth where
 
@@ -19,14 +25,15 @@ import qualified Web.JWT               as JWT
 
 data OAuth2Session = OAuth2Session
     { _oas_client_id     :: Text
-    , _oas_access_token  :: Text
-    , _oas_refresh_token :: Text
-    , _oas_expires_in    :: NominalDiffTime
-    , _oas_refresh_url   :: Text
+    , _oas_access_token  :: Text -- ^ access token for APIs
+    , _oas_refresh_token :: Text -- ^ refresh token after expires
+    , _oas_expires_in    :: NominalDiffTime -- ^ duration in which the access token is valid
+    , _oas_refresh_url   :: Text -- ^ refresh url
     }
 
 makeLenses ''OAuth2Session
 
+-- | Setup a background thread to refresh OAuth2 token.
 oauth2_setup :: Text -> Text -> IO (ThreadId, MVar OAuth2Session)
 oauth2_setup access_token refresh_token = do
     let decoded = JWT.decode $ access_token
