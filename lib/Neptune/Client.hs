@@ -6,17 +6,16 @@ License     : BSD-3-Clause
 -}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
 module Neptune.Client where
 
-import           Control.Concurrent        (ThreadId, forkIO, killThread)
-import           Control.Concurrent.Event  as E
-import           Control.Lens
+import           Control.Concurrent        (forkIO, killThread)
+import           Control.Concurrent.Event  as E (new, set, waitTimeout)
+import           Control.Lens              ((<&>), (^.))
 import qualified Data.Text.Lazy            as TL
 import qualified Data.Text.Lazy.Encoding   as TL
 import           Data.Time.Clock           (getCurrentTime)
 import qualified Data.UUID                 as UUID (toText)
-import           Data.UUID.V4              as UUID
+import           Data.UUID.V4              as UUID (nextRandom)
 import qualified Network.HTTP.Client       as NH
 import qualified Network.HTTP.Client.TLS   as NH
 import           RIO                       hiding (Lens', (^.))
@@ -163,7 +162,7 @@ teardownNept NeptuneSession{..} experiment state msg = do
     -- wait at most 5 seconds
     done <- E.waitTimeout (experiment ^. exp_transmitter_flag) 5000000
     -- kill if timeout
-    when (not done) $
+    unless done $
         killThread $ experiment ^. exp_transmitter
     killThread $ _neptune_oauth2_refresh
 
