@@ -23,6 +23,7 @@ import qualified RIO.HashMap               as M
 import qualified RIO.Text                  as T
 import           System.Envy               (decodeEnv)
 
+import           Neptune.AbortHandler      (AbortException (..), abortListener)
 import qualified Neptune.Backend.API       as NBAPI
 import           Neptune.Backend.Client
 import           Neptune.Backend.Core
@@ -65,15 +66,21 @@ createExperiment session@NeptuneSession{..} name description params props tags =
                     params
                     "command" -- legacy
                     (fromMaybe "Untitled" name)
-                    tags){ experimentCreationParamsDescription = description }
+                    tags){ experimentCreationParamsDescription = description
+                         , experimentCreationParamsAbortable = Just True }
+
     let exp_id = ExperimentId (exp ^. experimentIdL)
     chan <- newTChanIO
     user_channels <- newTVarIO M.empty
     stop_flag <- E.new
     transmitter_flag <- E.new
-    let exp = Experiment exp_id chan user_channels stop_flag transmitter_flag undefined
+    let exp = Experiment exp_id chan user_channels stop_flag transmitter_flag undefined undefined
     transmitter_thread <- forkIO $ transmitter session exp
-    return exp {_exp_transmitter = transmitter_thread}
+
+    parent_thread <- myThreadId
+    abort_handler <- forkIO $ abortListener session exp parent_thread
+
+    return exp {_exp_transmitter = transmitter_thread, _exp_abort_handler = abort_handler}
 
     where
         _mkParameter (ExperimentParamS name value) = do
@@ -106,10 +113,12 @@ withNept project_qualified_name act = do
     result <- try (act ses exp)
     case result of
       Left (e :: SomeException) -> do
-          teardownNept ses exp ExperimentState'Failed (T.pack $ displayException e)
+          case fromException e of
+            Just AbortException -> teardownNept ses exp Nothing
+            Nothing -> teardownNept ses exp (Just (ExperimentState'Failed, T.pack $ displayException e))
           throwM e
       Right a -> do
-          teardownNept ses exp ExperimentState'Succeeded ""
+          teardownNept ses exp (Just (ExperimentState'Succeeded, ""))
           return a
 
 -- | Initialize a neptune session
@@ -120,7 +129,7 @@ initNept project_qualified_name = do
     ct@ClientToken{..} <- decodeEnv >>= either throwString return
 
     mgr <- NH.newManager NH.tlsManagerSettings
-    config0 <- withStderrLogging =<< newConfig
+    config0 <- pure . withNoLogging =<< newConfig
 
     let api_endpoint = TL.encodeUtf8 (TL.fromStrict _ct_api_url)
         config = config0 { configHost = api_endpoint }
@@ -154,10 +163,9 @@ initNept project_qualified_name = do
 -- | Teardown a neptune session
 teardownNept :: NeptuneSession -- ^ session
              -> Experiment -- ^ experiment
-             -> ExperimentState -- ^ completion state
-             -> Text -- ^ completion message
+             -> Maybe (ExperimentState, Text) -- ^ completion state & message
              -> IO ()
-teardownNept NeptuneSession{..} experiment state msg = do
+teardownNept NeptuneSession{..} experiment state_msg = do
     E.set (experiment ^. exp_stop_flag)
     -- wait at most 5 seconds
     done <- E.waitTimeout (experiment ^. exp_transmitter_flag) 5000000
@@ -166,11 +174,11 @@ teardownNept NeptuneSession{..} experiment state msg = do
         killThread $ experiment ^. exp_transmitter
     killThread $ _neptune_oauth2_refresh
 
-    _ <- _neptune_dispatch $ NBAPI.markExperimentCompleted
-        (ContentType MimeJSON)
-        (Accept MimeNoContent)
-        (mkCompletedExperimentParams state msg)
-        (experiment ^. exp_experiment_id) :: IO NoContent
-
-    return ()
-
+    case state_msg of
+      Just (state, msg) ->
+          void (_neptune_dispatch $ NBAPI.markExperimentCompleted
+                    (ContentType MimeJSON)
+                    (Accept MimeNoContent)
+                    (mkCompletedExperimentParams state msg)
+                    (experiment ^. exp_experiment_id) :: IO NoContent)
+      Nothing -> return ()

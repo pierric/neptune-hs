@@ -63,6 +63,8 @@ library
     , envy
     , uuid
     , concurrent-extra
+    , websockets
+    , wuss
   other-modules:
       Paths_neptune_backend
   autogen-modules:
@@ -74,6 +76,7 @@ library
       Neptune.OAuth
       Neptune.Session
       Neptune.Utils
+      Neptune.AbortHandler
       Neptune.Backend.API
       Neptune.Backend.API.ApiDefault
       Neptune.Backend.Client

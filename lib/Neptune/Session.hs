@@ -77,6 +77,7 @@ data Experiment = Experiment
     , _exp_stop_flag        :: E.Event -- ^ Event flag to indicate the end of the session
     , _exp_transmitter_flag :: E.Event -- ^ Event flag to indicate completion of transmission
     , _exp_transmitter      :: ThreadId -- ^ Background thread for transmission
+    , _exp_abort_handler    :: ThreadId
     }
 
 class (Typeable a, Show a) => NeptDataType a where

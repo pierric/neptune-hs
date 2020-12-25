@@ -13,7 +13,6 @@ main = do
 ## TODOs
 * Support logging text, image value.
 * Create project
-* Register callback for the abort action from web console.
 * Support system channels
 * Get git information
 

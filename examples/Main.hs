@@ -16,6 +16,6 @@ import           RIO
 
 main = do
     withNept "jiasen/sandbox" $ \_ experiment -> do
-        forM_ [1..10::Int] $ \i -> do
+        forM_ [1..200::Int] $ \i -> do
             nlog experiment "counter" (fromIntegral (i * i) :: Double)
             threadDelay 1000000
