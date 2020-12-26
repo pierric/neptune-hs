@@ -1,23 +1,24 @@
+name-template: v$NEXT_PATCH_VERSION 🌈
+tag-template: v$NEXT_PATCH_VERSION
+categories:
+  - title: 🚀 New features
+    label: new
+  - title: 🚨 Bug Fixes
+    label: bug
+  - title: 💉 Updated features
+    label: update
+  - title: 🧹 Cleaned or removed features
+    label: remove
+  - title: 📝 Documentation updates
+    label: doc
+  - title: 🚦 Tests
+    label: test
+change-template: '- #$NUMBER: $TITLE (thanks to @$AUTHOR)'
 template: |
-  ## What’s Changed
+  ## What's Changed
 
   $CHANGES
 
-name-template: 'v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
+  ## Thanks to
 
-version-resolver:
-  major:
-    labels:
-      - 'major'
-  minor:
-    labels:
-      - 'minor'
-  patch:
-    labels:
-      - 'patch'
-  default: patch
-
-references:
-  - development
-  - v.+
+  $CONTRIBUTORS
