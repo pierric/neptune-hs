@@ -17,3 +17,7 @@ version-resolver:
     labels:
       - 'patch'
   default: patch
+
+references:
+  - development
+  - v.+
