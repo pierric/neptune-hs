@@ -65,6 +65,7 @@ library
     , concurrent-extra
     , websockets
     , wuss
+    , unix
   other-modules:
       Paths_neptune_backend
   autogen-modules:

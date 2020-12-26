@@ -10,6 +10,8 @@ module Neptune.Client where
 
 import           Control.Concurrent        (forkIO, killThread)
 import           Control.Concurrent.Event  as E (new, set, waitTimeout)
+import           Control.Exception         (AsyncException (UserInterrupt),
+                                            asyncExceptionFromException, try)
 import           Control.Lens              ((<&>), (^.))
 import qualified Data.Text.Lazy            as TL
 import qualified Data.Text.Lazy.Encoding   as TL
@@ -18,10 +20,12 @@ import qualified Data.UUID                 as UUID (toText)
 import           Data.UUID.V4              as UUID (nextRandom)
 import qualified Network.HTTP.Client       as NH
 import qualified Network.HTTP.Client.TLS   as NH
-import           RIO                       hiding (Lens', (^.))
+import           RIO                       hiding (Lens', try, (^.))
 import qualified RIO.HashMap               as M
 import qualified RIO.Text                  as T
 import           System.Envy               (decodeEnv)
+import           System.Posix.Signals      (Handler (Catch), installHandler,
+                                            keyboardSignal)
 
 import           Neptune.AbortHandler      (AbortException (..), abortListener)
 import qualified Neptune.Backend.API       as NBAPI
@@ -110,12 +114,22 @@ withNept project_qualified_name act = do
     ses <- initNept project_qualified_name
     exp <- createExperiment ses Nothing Nothing [] [] []
 
+    -- install an signal handler for CTRL-C, ensuring that an async-
+    -- exception UserInterrupt is sent to the main thread
+    main_thread <- myThreadId
+    let interrupted = throwTo main_thread UserInterrupt
+    installHandler keyboardSignal (Catch interrupted) Nothing
+
     result <- try (act ses exp)
     case result of
       Left (e :: SomeException) -> do
-          case fromException e of
-            Just AbortException -> teardownNept ses exp Nothing
-            Nothing -> teardownNept ses exp (Just (ExperimentState'Failed, T.pack $ displayException e))
+          let end_state = case fromException e of
+                            Just AbortException -> Nothing
+                            Nothing -> Just $
+                                case asyncExceptionFromException e of
+                                  Just UserInterrupt -> (ExperimentState'Failed, "User interrupted.")
+                                  Nothing -> (ExperimentState'Failed, T.pack $ displayException e)
+          teardownNept ses exp end_state
           throwM e
       Right a -> do
           teardownNept ses exp (Just (ExperimentState'Succeeded, ""))
