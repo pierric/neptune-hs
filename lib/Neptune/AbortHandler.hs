@@ -3,6 +3,7 @@
 module Neptune.AbortHandler where
 
 import           Control.Lens          (_Right, (^?!))
+import           Control.Retry         (constantDelay, recoverAll)
 import           Data.Aeson            (FromJSON (..), Value (..),
                                         eitherDecode', (.:))
 import           Data.Aeson.Types      (prependFailure, typeMismatch)
@@ -38,10 +39,7 @@ abortListener sess exp main_thread = do
                 [("Authorization", "Bearer " <> encodeUtf8 oauth_token)]
                 (listener main_thread)
 
-    -- TODO reconnection
-    catch run_listener (\e -> do let msg = show (e :: SomeException)
-                                 traceShowM msg)
-
+    recoverAll (constantDelay 500) $ \_ -> run_listener
 
     where
         port       = 443
