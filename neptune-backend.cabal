@@ -66,6 +66,7 @@ library
     , websockets
     , wuss
     , unix
+    , retry
   other-modules:
       Paths_neptune_backend
   autogen-modules:
