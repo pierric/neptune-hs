@@ -17,7 +17,7 @@ import           Network.HTTP.Req      (JsonResponse, POST (..),
                                         ReqBodyUrlEnc (..), defaultHttpConfig,
                                         jsonResponse, req, responseBody, runReq,
                                         useHttpsURI, (=:))
-import           RIO                   hiding (Lens', (^.))
+import           RIO                   hiding (Lens', (.~), (^.))
 import qualified RIO.Text              as T
 import           Text.URI              (mkURI)
 import qualified Web.JWT               as JWT

@@ -12,7 +12,8 @@ module Neptune.Channel where
 import           Control.Concurrent.Event  as E (isSet, set)
 import           Control.Lens
 import           Data.Typeable             (Proxy (..), cast)
-import           RIO                       hiding (Lens', (^.))
+import           RIO                       hiding (Lens', (.~), (^.), (^..),
+                                            (^?))
 import qualified RIO.HashMap               as M
 
 import qualified Neptune.Backend.API       as NBAPI
