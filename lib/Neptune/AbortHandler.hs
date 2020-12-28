@@ -39,7 +39,10 @@ abortListener sess exp main_thread = do
                 [("Authorization", "Bearer " <> encodeUtf8 oauth_token)]
                 (listener main_thread)
 
-    recoverAll (constantDelay 500) $ \_ -> run_listener
+    -- usually it is the server that close the socket, however the program
+    -- can run really a long time and a network error might happen.
+    -- If exception (synchronous) happens, delay 0.5s and reconnect.
+    recoverAll (constantDelay 500000) $ \_ -> run_listener
 
     where
         port       = 443
