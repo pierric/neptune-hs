@@ -11,12 +11,16 @@ module Neptune.Channel where
 
 import           Control.Concurrent.Event  as E (isSet, set)
 import           Control.Lens
+import           Control.Retry             (recoverAll, retryPolicyDefault)
 import           Data.Typeable             (Proxy (..), cast)
 import           RIO                       hiding (Lens', (.~), (^.), (^..),
                                             (^?))
 import qualified RIO.HashMap               as M
 
 import qualified Neptune.Backend.API       as NBAPI
+import           Neptune.Backend.Core      (configLogContext,
+                                            configLogExecWithContext)
+import           Neptune.Backend.Logging   (_log, levelError)
 import           Neptune.Backend.MimeTypes
 import           Neptune.Backend.Model     hiding (Experiment)
 import           Neptune.Backend.ModelLens
@@ -37,7 +41,11 @@ transmitter session@NeptuneSession{..} Experiment{..} = go
                     if stop_flag
                       then readTChanFull _exp_outbound_q
                       else readTChanAtMost 100 _exp_outbound_q
-            send dat
+            -- Retry sending the whole batch upto 6 times.
+            -- Discard and log if fails continuously
+            handle onErr $
+                recoverAll retryPolicyDefault $ \_ ->
+                    send dat
             if not stop_flag
                then go
                else E.set _exp_transmitter_flag
@@ -63,11 +71,12 @@ transmitter session@NeptuneSession{..} Experiment{..} = go
                 case chn of
                   DataChannelAny chn -> do
                       let (errs, grouped) = gatherDataPoints (proxy chn) dat
-                      -- TODO log properly
-                      mapM_ print errs
+                      mapM_ (logE _neptune_config) errs
                       return $ DataChannelWithData (chn, grouped)
 
             sendChannel session _exp_experiment_id chn_with_dat
+
+        onErr exc = logE _neptune_config $ "Failed to send data points.\n" <> tshow (exc :: SomeException)
 
         proxy :: f a -> Proxy a
         proxy _ = Proxy
@@ -120,7 +129,7 @@ sendChannel NeptuneSession{..} exp_id chn'value = do
             xs    = err ^. batchChannelValueErrorDTOXL
             ecode = err ^. batchChannelValueErrorDTOErrorL . errorCodeL
             emsg  = err ^. batchChannelValueErrorDTOErrorL . errorMessageL
-        print (chn, xs, ecode, emsg)
+        logE _neptune_config $ tshow (chn, xs, ecode, emsg)
 
     where
         toChannelsValues :: DataChannelWithData -> InputChannelValues
@@ -156,3 +165,6 @@ gatherDataPoints _ dpa = partitionEithers $ map castData dpa
         castData (DataPointAny d) = case cast d of
                                       Nothing -> Left $ _dpt_name d <> " is not compatible for the channel"
                                       Just o -> Right o
+
+logE config msg = configLogExecWithContext config (configLogContext config) $
+    _log "Neptune.Channel" levelError msg
