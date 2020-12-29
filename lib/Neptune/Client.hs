@@ -118,17 +118,19 @@ withNept project_qualified_name act = do
     -- exception UserInterrupt is sent to the main thread
     main_thread <- myThreadId
     let interrupted = throwTo main_thread UserInterrupt
-    installHandler keyboardSignal (Catch interrupted) Nothing
 
+    old_handler <- installHandler keyboardSignal (Catch interrupted) Nothing
     result <- try (act ses exp)
+    _ <- installHandler keyboardSignal old_handler Nothing
+
     case result of
       Left (e :: SomeException) -> do
           let end_state = case fromException e of
                             Just AbortException -> Nothing
-                            Nothing -> Just $
+                            _ -> Just $
                                 case asyncExceptionFromException e of
                                   Just UserInterrupt -> (ExperimentState'Failed, "User interrupted.")
-                                  Nothing -> (ExperimentState'Failed, T.pack $ displayException e)
+                                  _ -> (ExperimentState'Failed, T.pack $ displayException e)
           teardownNept ses exp end_state
           throwM e
       Right a -> do

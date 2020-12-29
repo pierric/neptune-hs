@@ -11,24 +11,24 @@ import           Data.Text.Encoding    (encodeUtf8)
 import qualified Network.WebSockets    as WS
 import           RIO
 import           RIO.Text              as T (pack, unpack)
-import           Text.URI              (RText, RTextLabel (..), mkURI)
+import           Text.URI              (mkURI)
 import           Text.URI.Lens
 import qualified Wuss
 
-import           Neptune.Backend.Core  (configHost)
 import           Neptune.Backend.Model (ExperimentId (..))
 import           Neptune.OAuth         (oas_access_token)
-import           Neptune.Session       (ClientToken (..), Experiment,
-                                        NeptuneSession (..), exp_experiment_id)
+import           Neptune.Session       (Experiment, NeptuneSession, ct_api_url,
+                                        exp_experiment_id, neptune_client_token,
+                                        neptune_oauth2)
 
 abortListener :: NeptuneSession -> Experiment -> ThreadId -> IO ()
 abortListener sess exp main_thread = do
-    base_url <- mkURI (sess & _neptune_client_token & _ct_api_url)
+    base_url <- mkURI (sess ^. neptune_client_token . ct_api_url)
 
     let host = base_url ^?! uriAuthority . _Right . authHost . unRText
         path = notif_path <> exp_id <> "/operations" :: String
 
-        oauth_ref = sess & _neptune_oauth2
+        oauth_ref = sess ^. neptune_oauth2
 
         run_listener = do
             oauth_current <- readMVar oauth_ref

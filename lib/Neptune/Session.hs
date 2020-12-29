@@ -107,6 +107,14 @@ data DataPoint a = DataPoint
 data DataPointAny = forall a . NeptDataType a => DataPointAny (DataPoint a)
 deriving instance Show DataPointAny
 
+makeLenses ''ClientToken
+makeLensesFor [("_neptune_http_manager", "neptune_http_manager")
+              ,("_neptune_client_token", "neptune_client_token")
+              ,("_neptune_config", "neptune_config")
+              ,("_neptune_oauth2", "neptune_oauth2")
+              ,("_neptune_oauth2_refresh", "neptune_oauth2_refresh")
+              ,("_neptune_project", "neptune_project")]
+              ''NeptuneSession
 makeLenses ''Experiment
 makeLenses ''DataPoint
 
