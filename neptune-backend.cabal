@@ -54,19 +54,19 @@ library
     , transformers >=0.4.0.0
     , unordered-containers
     , vector >=0.10.9 && <0.13
-    , lens
-    , lens-aeson
-    , rio
-    , modern-uri
-    , jwt
-    , req
-    , envy
-    , uuid
-    , concurrent-extra
-    , websockets
-    , wuss
-    , unix
-    , retry
+    , lens >=4 && < 5
+    , lens-aeson >= 1 && < 2
+    , rio >= 0.1 && < 0.2
+    , modern-uri >= 0.3 && < 0.4
+    , jwt < 1
+    , req >= 3 && < 4
+    , envy >= 2.0 && < 2.1
+    , uuid >= 1 && < 2
+    , concurrent-extra >= 0.7 && < 0.8
+    , websockets >= 0.12 && < 0.13
+    , wuss >= 1 && < 2
+    , unix >= 2.7 && < 2.8
+    , retry >= 0.8 && < 0.9
   other-modules:
       Paths_neptune_backend
   autogen-modules:
