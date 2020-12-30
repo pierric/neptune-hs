@@ -12,17 +12,20 @@ import           Control.Concurrent        (forkIO, killThread)
 import           Control.Concurrent.Event  as E (new, set, waitTimeout)
 import           Control.Exception         (AsyncException (UserInterrupt),
                                             asyncExceptionFromException, try)
-import           Control.Lens              ((<&>), (^.))
+import           Control.Lens              (bimapping, each, filtered, (<&>),
+                                            (^.), (^..))
 import qualified Data.Text.Lazy            as TL
 import qualified Data.Text.Lazy.Encoding   as TL
+import           Data.Text.Lens            (packed)
 import           Data.Time.Clock           (getCurrentTime)
 import qualified Data.UUID                 as UUID (toText)
 import           Data.UUID.V4              as UUID (nextRandom)
 import qualified Network.HTTP.Client       as NH
 import qualified Network.HTTP.Client.TLS   as NH
-import           RIO                       hiding (Lens', try, (^.))
+import           RIO                       hiding (Lens', try, (^.), (^..))
 import qualified RIO.HashMap               as M
 import qualified RIO.Text                  as T
+import           System.Environment        (getArgs, getEnvironment)
 import           System.Envy               (decodeEnv)
 import           System.Posix.Signals      (Handler (Catch), installHandler,
                                             keyboardSignal)
@@ -106,13 +109,31 @@ nlog exp name value = do
         dat  = DataPointAny $ DataPoint name now value
     atomically $ writeTChan chan dat
 
--- | Run an action within a neptune session
+-- | Run an action within a neptune session and a new experiment
 withNept :: Text -- ^ \<namespace\>\/\<project_name\>
          -> (NeptuneSession -> Experiment -> IO a) -- ^ action
          -> IO a
 withNept project_qualified_name act = do
+    args <- T.unwords . map T.pack <$> getArgs
+    envs <- getEnvironment
+    let valid_pat name = T.isPrefixOf "MXNET_"  name ||
+                         T.isPrefixOf "NVIDIA_" name ||
+                         T.isPrefixOf "CUDA_"   name
+    envs <- pure $ envs ^.. each . bimapping packed packed . filtered (valid_pat . fst)
+    withNept' project_qualified_name Nothing Nothing [] (("args", args) : envs) [] act
+
+-- | Run an action within a neptune session and a new experiment
+withNept' :: Text -- ^ \<namespace\>\/\<project_name\>
+          -> Maybe Text -- ^ Optional name of the experiment (automatically assigned if Nothing)
+          -> Maybe Text -- ^ Optional description of the experiment
+          -> [Parameter] -- ^ experiment hyper-parameters
+          -> [(Text, Text)] -- ^ experiment properties
+          -> [Text] -- ^ experiment tags
+          -> (NeptuneSession -> Experiment -> IO a) -- ^ action
+          -> IO a
+withNept' project_qualified_name name description params props tags act = do
     ses <- initNept project_qualified_name
-    exp <- createExperiment ses Nothing Nothing [] [] []
+    exp <- createExperiment ses name description params props tags
 
     -- install an signal handler for CTRL-C, ensuring that an async-
     -- exception UserInterrupt is sent to the main thread
